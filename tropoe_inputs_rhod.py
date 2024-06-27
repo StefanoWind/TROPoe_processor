@@ -275,7 +275,7 @@ time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
 real=Output_met.atmos_pressure>0
 plt.subplot(5,1,4)
 plt.plot(time_met[real],Output_met.atmos_pressure.values[real],'.k')
-plt.ylabel(r'$P$ [hPa]')
+plt.ylabel(r'$P$ [mbar]')
 plt.grid()
 plt.gca().xaxis.set_major_formatter(date_fmt)
 
