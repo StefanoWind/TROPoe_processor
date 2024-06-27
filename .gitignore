@@ -1,0 +1,12 @@
+__pycache__
+*.cdf
+*.png
+*.pyc
+*.nc
+*.xlsx
+*.csv
+*.m
+*.tar
+*.txt
+*.pkl
+*.sh
