@@ -28,9 +28,9 @@ channel_assist='wfip3/rhod.assist.z01.00'
 channel_lidar= 'wfip3/rhod.lidar.z02.a0'
 channel_met=   'wfip3/rhod.met.z01.00'
 
-path_python='C:/ProgramData/Anaconda3/python.exe'
-path_dap_py='C:/Users/SLETIZIA/OneDrive - NREL/Desktop/PostDoc/Custom_functions/dap-py'
-path_utils='C:/Users/SLETIZIA/OneDrive - NREL/Desktop/PostDoc/utils'
+path_python='/home/sletizia/anaconda3/bin/python3.11'
+path_dap_py='/home/sletizia/codes/dap-py'
+path_utils='/home/sletizia/codes/utils'
 path_cbh=os.path.join(cd,'cbh')
 path_nsf=os.path.join(cd,'irs_nf')
 
@@ -231,12 +231,12 @@ plt.figure(figsize=(18,8))
 #plot radiance at 675 cm^-1
 Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_assist,'ch1','*cdf'))[-1]).sortby('time')
 tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
-time_ch1=np.array([datetime.utcfromtimestamp(t) for t in tnum_ch1])
+time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
 sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
 
 Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_assist,'nfc','*cdf'))[-1]).sortby('time')
 tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
-time_ch1_nsf=np.array([datetime.utcfromtimestamp(t) for t in tnum_ch1_nsf])
+time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
 sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
 
 plt.subplot(5,1,1)
