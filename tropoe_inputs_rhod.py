@@ -290,3 +290,6 @@ plt.grid()
 plt.gca().xaxis.set_major_formatter(date_fmt)
 plt.tight_layout()
 plt.xlabel('Time (UTC)')
+
+utl.mkdir(os.path.join(cd,'figures/rhod'))
+plt.savefig(os.path.join(cd,'figures/rhod',utl.datestr(utl.datenum(data,'%Y-%m-%d'),'%Y%m%d.%H%M%S')+'.rhod.tropoeinput.png')
