@@ -28,13 +28,23 @@ channel_assist='wfip3/rhod.assist.z01.00'
 channel_lidar= 'wfip3/rhod.lidar.z02.a0'
 channel_met=   'wfip3/rhod.met.z01.00'
 
-path_python='/home/sletizia/anaconda3/bin/python3.11'
-path_dap_py='/home/sletizia/codes/dap-py'
-path_utils='/home/sletizia/codes/utils'
+site='rhod'
+
+server=False
+
+if server:
+    path_python='/home/sletizia/anaconda3/bin/python3.11'
+    path_dap_py='/home/sletizia/codes/dap-py'
+    path_utils='/home/sletizia/codes/utils'
+else:
+    path_python='C:/ProgramData/Anaconda3/python'
+    path_dap_py='C:/Users/SLETIZIA/OneDrive - NREL/Desktop/PostDoc/Custom_functions/dap-py'
+    path_utils='C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/utils'
+    
 path_cbh=os.path.join(cd,'cbh')
 path_nsf=os.path.join(cd,'irs_nf')
 
-download=True
+download=False
 
 met_headers={'temperature':11,'pressure':8,'humidity':12}
 
@@ -148,25 +158,25 @@ files=glob.glob(os.path.join(cd,'data',channel_lidar,'*nc'))
 tnum_cbh_all=[]
 cbh_all=[]
 for f in files:
-    time_cbh,cbh_lidar=cbh.compute_cbh(f,plot=False)
+    time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=False)
     tnum_cbh_all=np.append(tnum_cbh_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
     cbh_all=np.append(cbh_all,cbh_lidar)
-    with open('data/processed_cbh.txt', 'a') as fid:
-        fid.write(os.path.basename(f)+'\n')
+    # with open('data/processed_cbh.txt', 'a') as fid:
+    #     fid.write(os.path.basename(f)+'\n')
 
 basetime_cbh=utl.floor(tnum_cbh_all[0],24*3600)
 time_offset_cbh=tnum_cbh_all-basetime_cbh
 
 Output_cbh=xr.Dataset()
 Output_cbh['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-9999)),
-                                     coords={'time':np.arange(len(time_offset_cbh))})
+                                     coords={'time':np.int32(time_offset_cbh)})
 
-Output_cbh['time_offset']=xr.DataArray(data=time_offset_cbh,
-                                     coords={'time':np.arange(len(time_offset_cbh))})
+# Output_cbh['time_offset']=xr.DataArray(data=time_offset_cbh,
+#                                      coords={'time':np.arange(len(time_offset_cbh))})
 
-Output_cbh['base_time']=np.float64(basetime_cbh)
+Output_cbh['base_time']=np.int64(basetime_cbh)
 Output_cbh.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-Output_cbh.to_netcdf(os.path.join(cd,'data',channel_lidar.replace('a0','cbh'),utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.cbh.nc'))
+Output_cbh.to_netcdf(os.path.join(cd,'data',channel_lidar.replace('a0','cbh'),channel_lidar.replace('a0','cbh').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
 
 #download met data
 if download:
@@ -212,18 +222,18 @@ basetime_met=utl.floor(tnum_met_all[0],24*3600)
 time_offset_met=tnum_met_all-basetime_met
 
 Output_met=xr.Dataset()
-Output_met['temp_mean']=xr.DataArray(data=np.int32(np.nan_to_num(temp_all,nan=-9999)),
+Output_met['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
                                      coords={'time':np.arange(len(time_offset_met))})
-Output_met['atmos_pressure']=xr.DataArray(data=np.int32(np.nan_to_num(press_all,nan=-9999)),
+Output_met['atmos_pressure']=xr.DataArray(data=np.nan_to_num(press_all/10,nan=-9999),
                                      coords={'time':np.arange(len(time_offset_met))})
-Output_met['rh_mean']=xr.DataArray(data=np.int32(np.nan_to_num(rh_all,nan=-9999)),
+Output_met['rh_mean']=       xr.DataArray(data=np.nan_to_num(rh_all,nan=-9999),
                                      coords={'time':np.arange(len(time_offset_met))})
 
 Output_met['time_offset']=xr.DataArray(data=time_offset_met,
                                      coords={'time':np.arange(len(time_offset_met))})
 Output_met['base_time']=np.float64(basetime_met)
 Output_met.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-Output_met.to_netcdf(os.path.join(cd,'data',channel_met.replace('00','sel'),utl.datestr(basetime_met,'%Y%m%d.%H%M%S')+'.met.nc'))
+Output_met.to_netcdf(os.path.join(cd,'data',channel_met.replace('00','sel'),channel_met.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
 
 #%% Plots
 plt.figure(figsize=(18,8))
@@ -242,7 +252,7 @@ sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
 plt.subplot(5,1,1)
 plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
 plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
-plt.ylabel('Mean radiance [r.u.]')
+plt.ylabel('Mean radiance \n'+r'at 675 cm$^{-1}$ [r.u.]')
 plt.grid()
 plt.legend()
 date_fmt = mdates.DateFormatter('%H:%M')
@@ -250,7 +260,7 @@ plt.gca().xaxis.set_major_formatter(date_fmt)
 plt.title('Input data on '+date)
 
 #plot cbh
-tnum_cbh=Output_cbh.time_offset.values+Output_cbh.base_time.values
+tnum_cbh=Output_cbh.time.values+Output_cbh.base_time.values
 time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
 real=Output_cbh.first_cbh>0
 plt.subplot(5,1,2)
@@ -275,7 +285,7 @@ time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
 real=Output_met.atmos_pressure>0
 plt.subplot(5,1,4)
 plt.plot(time_met[real],Output_met.atmos_pressure.values[real],'.k')
-plt.ylabel(r'$P$ [mbar]')
+plt.ylabel(r'$P$ [kPa]')
 plt.grid()
 plt.gca().xaxis.set_major_formatter(date_fmt)
 
@@ -292,4 +302,4 @@ plt.tight_layout()
 plt.xlabel('Time (UTC)')
 
 utl.mkdir(os.path.join(cd,'figures/rhod'))
-plt.savefig(os.path.join(cd,'figures/rhod',utl.datestr(utl.datenum(data,'%Y-%m-%d'),'%Y%m%d.%H%M%S')+'.rhod.tropoeinput.png')
+plt.savefig(os.path.join(cd,'figures/rhod',utl.datestr(utl.datenum(date,'%Y-%m-%d'),'%Y%m%d.%H%M%S')+'.rhod.tropoeinput.png'))
