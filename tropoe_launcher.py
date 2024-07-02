@@ -3,10 +3,11 @@ Run TROPoe retrieval and store results
 '''
 
 import os
-cd=os.path.dirname(__file__)
+cd='/home/sletizia/codes/TROPoe_processor'
+os.chdir(cd)
 
 import sys
-sys.path.append('/home/utletizia/codes')
+sys.path.append('/home/letizia/codes')
     
 import numpy as np
 # import pandas as pd
@@ -24,9 +25,9 @@ import matplotlib.dates as mdates
 plt.close('all')
 
 #%% Inputs
-source_ch1=os.path.join(cd,'data/wfip3/{site}.assist.z01.00/nfc')
+source_ch1=os.path.join(cd,'data/wfip3/{site}.assist.z01.00/nsf')
 source_sum=os.path.join(cd,'data/wfip3/{site}.assist.z01.00/sum')
-path_utils='C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/utils'
+path_utils='/home/sletizia/codes/utils'
 
 time_range=['2024-05-20 00:00','2024-05-21 00:00']
 site='rhod'
@@ -43,7 +44,6 @@ label_fs = 14#labels fontsize
 tick_fs = 14#tick labels fontsize
 
 #%% Initialization
-
 sys.path.append(path_utils) 
 import utils as utl
 
@@ -84,8 +84,15 @@ t_file_sum_sel=t_file_sum[sel_t]
 t_match=utl.match_arrays(t_file_ch1_sel,t_file_sum_sel,max_time_diff)
 
 #change permission
-command='chmod 777 data/tropoe'
+command='chmod -R 777 '+cd
+print(command)
 result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+
+# command='chmod 755 data/tropoe'
+# result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+
+# command='chmod 755 data/prior'
+# result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
 # utl.mkdir('data/ch1/{side}'.format(site=site))
 # utl.mkdir('data/sum/{side}'.format(site=site))
@@ -118,20 +125,24 @@ for i_ch1,i_sum in zip(t_match[:,0],t_match[:,1]):
         date = utl.datestr(time[0],'%Y%m%d')
         month= utl.datestr(time[0],'%m')
 
-        #set permissions
-        command='chmod 755 '+os.path.join(source_ch1.format(site=site),f_ch1)
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        # #set permissions
+        # command='chmod 755 '+os.path.join(source_ch1.format(site=site),f_ch1)
+        # result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
-        command='chmod 755 '+os.path.join(source_sum.format(site=site),f_sum)
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        # command='chmod 755 '+os.path.join(source_sum.format(site=site),f_sum)
+        # result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+
+        # command='chmod 755 data/prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'.format(site_prior=site_prior,month=month)
+        # result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
         #run TROPoe
-        command ='./run_tropoe_ops.sh {date} tropoe/vip_{site}_wfip3.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'.format(date=date,site_prior=site_prior,month=month,site=site)+ \
-        ' 1 '+os.path.join(cd,'data') + os.path.join(cd,'data')+ 'davidturner53/tropoe:latest'
+        command ='./run_tropoe_ops.sh {date} tropoe/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'.format(date=date,site_prior=site_prior,month=month,site=site)+ \
+        ' 3 '+os.path.join(cd,'data') +' '+ os.path.join(cd,'data')+ ' davidturner53/tropoe:latest'
         print('The following will be executed \n'+command+'\n')
 
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         print(result.stdout)
+        print(result.stderr)
 
         #save output to log file
         with open(os.path.join(cd,'data/logs/'+os.path.basename(f_ch1[:-4])+'_'+str(site)+'_log.txt'), 'w') as fid:
