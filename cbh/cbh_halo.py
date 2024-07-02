@@ -5,8 +5,6 @@ Estimates first cloud base height from single file of lidar data. Based on Newso
 import os
 cd=os.path.dirname(__file__)
 import sys
-sys.path.append('C:/Users/SLETIZIA/OneDrive - NREL/Desktop/PostDoc/utils') 
-import utils as utl
 
 import xarray as xr
 import numpy as np
@@ -27,7 +25,7 @@ def moving_average(data,window):
     df = pd.DataFrame(data.T)
     return df.rolling(window=window,center=True,min_periods=1).mean().values.T
 
-def compute_cbh(file,averages=3,signal='range-corrected snr',plot=True):
+def compute_cbh(file,utl,averages=3,signal='range-corrected snr',plot=True):
     rmax=12000#maximum range
     rmin=100#minimum range
     window=5#window size for smoothing
