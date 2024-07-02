@@ -176,7 +176,7 @@ Output_cbh['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-99
 
 Output_cbh['base_time']=np.int64(basetime_cbh)
 Output_cbh.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-Output_cbh.to_netcdf(os.path.join(cd,'data',channel_lidar.replace('a0','cbh'),channel_lidar.replace('a0','cbh').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
+Output_cbh.to_netcdf(os.path.join(cd,'data',channel_lidar.replace('a0','cbh'),channel_lidar.replace('a0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
 
 #download met data
 if download:
@@ -233,7 +233,7 @@ Output_met['time_offset']=xr.DataArray(data=time_offset_met,
                                      coords={'time':np.arange(len(time_offset_met))})
 Output_met['base_time']=np.float64(basetime_met)
 Output_met.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-Output_met.to_netcdf(os.path.join(cd,'data',channel_met.replace('00','sel'),channel_met.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
+Output_met.to_netcdf(os.path.join(cd,'data',channel_met.replace('00','sel'),channel_met.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_met,'%Y%m%d.%H%M%S')+'.nc'))
 
 #%% Plots
 plt.figure(figsize=(18,8))
@@ -252,7 +252,7 @@ sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
 plt.subplot(5,1,1)
 plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
 plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
-plt.ylabel('Mean radiance \n'+r'at 675 cm$^{-1}$ [r.u.]')
+plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
 plt.grid()
 plt.legend()
 date_fmt = mdates.DateFormatter('%H:%M')
