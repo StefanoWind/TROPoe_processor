@@ -1,0 +1,18 @@
+path_python: "C:/ProgramData/Anaconda3/python"
+path_dap_py: "C:/Users/SLETIZIA/OneDrive - NREL/Desktop/PostDoc/Custom_functions/dap-py"
+path_utils: "C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/utils"
+path_tropoe_utils: "C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/tropoe_utils"
+username: sletizia
+password: pass_DAP1506@
+N_days_nsf: 8
+channel_irs: 
+  rhod: "wfip3/rhod.assist.z01.00"
+channel_met:
+  rhod: "wfip3/rhod.met.z01.00"
+channel_cbh:
+  rhod: "wfip3/rhod.lidar.z01.a0"
+met_headers_rhod:
+  temperature: 11
+  pressure: 8
+  humidity: 12
+
