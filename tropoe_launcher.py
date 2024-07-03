@@ -52,10 +52,6 @@ if os.path.exists(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))
 else: 
     processed=[]
 
-#change permissions
-command='chmod -R 777 '+cd
-result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-
 #create directories
 utl.mkdir(os.path.join(cd,'data',channel_irs)[0].replace('00','c0'))
 utl.mkdir(os.path.join('log',site))
@@ -113,6 +109,9 @@ for d in days:
             continue
                     
         #run TROPoe
+        command='chmod -R 777 '+cd
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        
         command =f'./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'+\
         f' {verbosity} ' +cd + ' ' + cd + ' davidturner53/tropoe:latest'
         logger.info('The following will be executed: \n'+command+'\n')
