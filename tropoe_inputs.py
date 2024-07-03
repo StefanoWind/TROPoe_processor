@@ -13,6 +13,7 @@ import logging
 import subprocess
 import numpy as np
 import xarray as xr
+from netCDF4 import Dataset
 import shutil
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
@@ -92,9 +93,9 @@ logger.error(result.stderr)
 #remove atmospheric pressure that causes error
 if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
     f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
-    Data_ch1=xr.open_dataset(f_ch1).sortby('time')
-    Data_ch1=Data_ch1.rename_vars({'atmosphericPressure':'deprecated_atmosphericPressure'})
-    Data_ch1.to_netcdf(f_ch1)
+    Data_ch1 = Dataset(f_ch1,'a')
+    Data_ch1.renameVariable('atmosphericPressure','deprecated_atmosphericPressure')
+    Data_ch1.close()
 
 #get cbh data
 channel_cbh=config['channel_cbh'][site]
