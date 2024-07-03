@@ -17,7 +17,6 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 import glob
 import yaml
-
 import matplotlib
 import warnings
 matplotlib.rcParams['font.family'] = 'serif'
@@ -28,19 +27,23 @@ plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
-source_confg=os.path.join(cd,'configs/config_local.yaml')
-site='rhod'
-date='2024-05-20'
+source_config=os.path.join(cd,'configs/config_local.yaml')
+
+if len(sys.argv)==1:
+    site='rhod'
+    date='20240520'
+else:
+    site=sys.argv[1]
+    date=sys.argv[2]
 
 #%% Initialization
-with open(source_confg, 'r') as fid:
+with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
     
 #imports
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-utl.mkdir(os.path.join('log',site))
 if os.path.exists(os.path.join('log',site,date+'_input.log')):
     open(os.path.join('log',site,date+'_input.log'), 'w').close()
 logging.basicConfig(
@@ -53,15 +56,13 @@ logging.basicConfig(
 logger = logging.getLogger()
 logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 
-date_dap=datetime.strftime(datetime.strptime(date, '%Y-%m-%d'),'%Y%m%d')
-
 #%% Main
 
 channel_irs=config['channel_irs'][site]
-if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date_dap+'*cdf')))==0:
+if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==0:
     #download assist data
-    time_range = [datetime.strftime(datetime.strptime(date, '%Y-%m-%d')-timedelta(days=config['N_days_nsf']-1),'%Y%m%d%H%M%S'),
-                  datetime.strftime(datetime.strptime(date, '%Y-%m-%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+    time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nsf']-1),'%Y%m%d%H%M%S'),
+                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
     
     n_files_irs=trp.download(channel_irs,time_range,config)
     logger.info(str(n_files_irs)+' ASSIST files downloaded')
@@ -71,8 +72,8 @@ if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date_dap+'*cdf')))
 
     #pca filter
     logger.info('Running PCA filter')
-    sdate=datetime.strftime(datetime.strptime(date,'%Y-%m-%d')-timedelta(days=config['N_days_nsf']),'%Y%m%d')
-    edate=datetime.strftime(datetime.strptime(date,'%Y-%m-%d'),'%Y%m%d')
+    sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nsf']),'%Y%m%d')
+    edate=date
     chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
     sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
     nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
@@ -101,9 +102,9 @@ channel_cbh=config['channel_cbh'][site]
 
 #retrieve cbh
 if 'lidar' in channel_cbh:
-    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date_dap+'*nc')))==0:
-        time_range = [datetime.strftime(datetime.strptime(date, '%Y-%m-%d'),'%Y%m%d%H%M%S'),
-                      datetime.strftime(datetime.strptime(date, '%Y-%m-%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==0:
+        time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
+                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
         
         n_files_cbh=trp.download(channel_cbh,time_range,config)
         logger.info(str(n_files_cbh)+' CBH files downloaded')
@@ -115,10 +116,10 @@ if 'lidar' in channel_cbh:
    
 #get met data
 channel_met=config['channel_met'][site]
-if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date_dap+'*nc')))==0:
+if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
     
-    time_range = [datetime.strftime(datetime.strptime(date, '%Y-%m-%d'),'%Y%m%d%H%M%S'),
-                  datetime.strftime(datetime.strptime(date, '%Y-%m-%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+    time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
+                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
     
     n_files_met=trp.download(channel_met,time_range,config)
     logger.info(str(n_files_met)+' met files downloaded')
@@ -129,73 +130,78 @@ else:
     logger.info('Met data already available, skipping.')
     
 #%% Plots
-plt.figure(figsize=(18,10))
 
-#plot radiance at 675 cm^-1
-if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date_dap+'*cdf')))==1:
-    Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date_dap+'*cdf'))[0]).sortby('time')
-    tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
-    time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
-    sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
+if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')==0:
+    plt.figure(figsize=(18,10))
     
-    Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date_dap+'*cdf'))[0]).sortby('time')
-    tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
-    time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
-    sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
-
-    plt.subplot(5,1,1)
-    plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
-    plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
-    plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
-    plt.grid()
-    plt.legend()
-    date_fmt = mdates.DateFormatter('%H:%M')
-    plt.gca().xaxis.set_major_formatter(date_fmt)
-    plt.title('Input data on '+date)
-
-#plot cbh
-if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date_dap+'*nc')))==1:
-    tnum_cbh=Output_cbh.time.values+Output_cbh.base_time.values
-    time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
-    real=Output_cbh.first_cbh>0
-    plt.subplot(5,1,2)
-    plt.plot(time_cbh[real],Output_cbh.first_cbh.values[real],'.b')
-    plt.ylabel('CBH [m]')
-    plt.grid()
-    plt.gca().xaxis.set_major_formatter(date_fmt)
-
-if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date_dap+'*nc')))==1:
-    #plot temperature
-    tnum_met=Output_met.time_offset.values+Output_met.base_time.values
-    time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
-    real=Output_met.temp_mean>0
-    plt.subplot(5,1,3)
-    plt.plot(time_met[real],Output_met.temp_mean.values[real],'.r')
-    plt.ylabel(r'$T$ [C]')
-    plt.grid()
-    plt.gca().xaxis.set_major_formatter(date_fmt)
+    #plot radiance at 675 cm^-1
+    if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
+        Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0]).sortby('time')
+        tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
+        time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
+        sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
+        
+        Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
+        tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
+        time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
+        sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
     
-    #plot pressure
-    tnum_met=Output_met.time_offset.values+Output_met.base_time.values
-    time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
-    real=Output_met.atmos_pressure>0
-    plt.subplot(5,1,4)
-    plt.plot(time_met[real],Output_met.atmos_pressure.values[real],'.k')
-    plt.ylabel(r'$P$ [kPa]')
-    plt.grid()
-    plt.gca().xaxis.set_major_formatter(date_fmt)
+        plt.subplot(5,1,1)
+        plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
+        plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
+        plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
+        plt.grid()
+        plt.legend()
+        date_fmt = mdates.DateFormatter('%H:%M')
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+        plt.title('Input data on '+date)
     
-    #plot humidity
-    tnum_met=Output_met.time_offset.values+Output_met.base_time.values
-    time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
-    real=Output_met.rh_mean>0
-    plt.subplot(5,1,5)
-    plt.plot(time_met[real],Output_met.rh_mean.values[real],'.c')
-    plt.ylabel('RH [%]')
-    plt.grid()
-    plt.gca().xaxis.set_major_formatter(date_fmt)
-    plt.tight_layout()
-    plt.xlabel('Time (UTC)')
-
-utl.mkdir(os.path.join(cd,'data',channel_irs).replace('00','c0'))
-plt.savefig(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date_dap+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')
+    #plot cbh
+    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
+        Data_cbh=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc'))[0])
+        tnum_cbh=Data_cbh.time.values+Data_cbh.base_time.values
+        time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
+        real=Data_cbh.first_cbh>0
+        plt.subplot(5,1,2)
+        plt.plot(time_cbh[real],Data_cbh.first_cbh.values[real],'.b')
+        plt.ylabel('CBH [m]')
+        plt.grid()
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+    
+    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==1:
+        Data_met=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc'))[0])
+        
+        #plot temperature
+        tnum_met=Data_met.time_offset.values+Output_met.base_time.values
+        time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
+        real=Data_met.temp_mean>0
+        plt.subplot(5,1,3)
+        plt.plot(time_met[real],Data_met.temp_mean.values[real],'.r')
+        plt.ylabel(r'$T$ [C]')
+        plt.grid()
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+        
+        #plot pressure
+        tnum_met=Output_met.time_offset.values+Output_met.base_time.values
+        time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
+        real=Output_met.atmos_pressure>0
+        plt.subplot(5,1,4)
+        plt.plot(time_met[real],Output_met.atmos_pressure.values[real],'.k')
+        plt.ylabel(r'$P$ [kPa]')
+        plt.grid()
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+        
+        #plot humidity
+        tnum_met=Output_met.time_offset.values+Output_met.base_time.values
+        time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
+        real=Output_met.rh_mean>0
+        plt.subplot(5,1,5)
+        plt.plot(time_met[real],Output_met.rh_mean.values[real],'.c')
+        plt.ylabel('RH [%]')
+        plt.grid()
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+        plt.tight_layout()
+        plt.xlabel('Time (UTC)')
+    
+    utl.mkdir(os.path.join(cd,'data',channel_irs).replace('00','c0'))
+    plt.savefig(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')
