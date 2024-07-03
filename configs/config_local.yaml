@@ -16,8 +16,9 @@ met_headers_rhod:
   pressure: 8
   humidity: 12
 site_prior: "upton_NY"
-max_time_diff: 60 #[s] maximum time mismatch between summary and ch1 files
+max_time_diff: 120 #[s] maximum time mismatch between summary and ch1 files
 max_z: 2000 #[m] maximum plot height
 min_lwp: 10 #[g/m^2] minimum liquid water path
+verbosity: 3
 
 
