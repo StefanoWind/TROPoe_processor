@@ -129,26 +129,26 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
         
-        with xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0]).sortby('time') as Data_ch1:
-            tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
-            time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
-            sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
+        Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]).sortby('time')
+        tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
+        time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
+        sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
+    
+        Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
+        tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
+        time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
+        sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
         
-            Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
-            tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
-            time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
-            sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
-            
-            plt.subplot(5,1,1)
-            plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
-            plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
-            plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
-            plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
-            plt.grid()
-            plt.legend()
-            date_fmt = mdates.DateFormatter('%H:%M')
-            plt.gca().xaxis.set_major_formatter(date_fmt)
-            plt.title('TROPoe input data on '+date)
+        plt.subplot(5,1,1)
+        plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
+        plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
+        plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+        plt.grid()
+        plt.legend()
+        date_fmt = mdates.DateFormatter('%H:%M')
+        plt.gca().xaxis.set_major_formatter(date_fmt)
+        plt.title('TROPoe input data on '+date)
 
     #plot cbh
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
