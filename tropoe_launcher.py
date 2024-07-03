@@ -114,7 +114,7 @@ for d in days:
                     
         #run TROPoe
         command =f'./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'+\
-        ' {verbosity} ' +cd + ' ' + cd + ' davidturner53/tropoe:latest'
+        f' {verbosity} ' +cd + ' ' + cd + ' davidturner53/tropoe:latest'
         logger.info('The following will be executed: \n'+command+'\n')
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)

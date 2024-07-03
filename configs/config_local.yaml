@@ -4,7 +4,7 @@ path_utils: "C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/utils"
 path_tropoe_utils: "C:/Users/SlETIZIA/OneDrive - NREL/Desktop/PostDoc/tropoe_utils"
 username: sletizia
 password: pass_DAP1506@
-N_days_nsf: 8
+N_days_nfc: 8
 channel_irs: 
   rhod: "wfip3/rhod.assist.z01.00"
 channel_met:

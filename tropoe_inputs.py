@@ -62,7 +62,7 @@ if os.path.exists(os.path.join(cd,'data',channel_irs,'nfc')):
     shutil.rmtree(os.path.join(cd,'data',channel_irs,'nfc'))
 
 #download assist data
-time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nsf']-1),'%Y%m%d%H%M%S'),
+time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
               datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
 
 n_files_irs=trp.download(channel_irs,time_range,config)
@@ -73,7 +73,7 @@ trp.copy_rename_assist(channel_irs)
 
 #pca filter
 logger.info('Running PCA filter')
-sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nsf']),'%Y%m%d')
+sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']),'%Y%m%d')
 edate=date
 chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
 sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
@@ -134,14 +134,14 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
         sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
     
-        Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
-        tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
-        time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
-        sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
+        Data_ch1_nfc=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
+        tnum_ch1_nfc=Data_ch1_nfc.time.values+Data_ch1_nfc.base_time.values/10**3
+        time_ch1_nfc=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nfc])
+        sky_ch1_nfc=Data_ch1_nfc['sceneMirrorAngle'].values==0
         
         plt.subplot(5,1,1)
         plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
-        plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
+        plt.plot(time_ch1_nfc[sky_ch1_nfc],Data_ch1_nfc['mean_rad'].interp(wnum=675).values[sky_ch1_nfc],'g',label='Filtered')
         plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
         plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
