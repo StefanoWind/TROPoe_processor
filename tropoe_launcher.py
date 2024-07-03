@@ -9,7 +9,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from datetime import datetime
 from datetime import timedelta
-import re
 import xarray as xr
 import logging
 import subprocess
@@ -26,7 +25,7 @@ source_config=os.path.join(cd,'configs/config_local.yaml')
 if len(sys.argv)==1:
     site='rhod'
     sdate='20240520'
-    edate='20240521'
+    edate='20240520'
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -37,8 +36,8 @@ else:
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
 channel_irs=config['channel_irs'][site]
-source_ch1=os.path.join(cd,'data',channel_irs,'ch1')
-source_sum=os.path.join(cd,'data',channel_irs,'sum')
+site_prior=config['site_prior']
+verbosity=config['verbosity']
 
 #imports
 sys.path.append(config['path_utils']) 
@@ -54,59 +53,30 @@ else:
 
 #change permissions
 command='chmod -R 777 '+cd
-print(command)
 result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
 #create directories
 utl.mkdir(os.path.join(cd,'data',channel_irs)[0].replace('00','c0'))
 utl.mkdir(os.path.join('log',site))
 
-#get ch1 filenames
-files_ch1=np.array(glob.glob(os.path.join(source_ch1.format(site=site),'assistcha*cdf')))
-t_file_ch1=[]
-for f in files_ch1:
-    match = re.search(r'\d{8}\.\d{6}', f)
-    t=datetime.strptime(match.group(0),'%Y%m%d.%H%M%S')
-    t_file_ch1=np.append(t_file_ch1,t)
-
-sel_t=(t_file_ch1>datetime.strptime(sdate,'%Y%m%d'))*(t_file_ch1<datetime.strptime(edate,'%Y%m%d'))
-files_ch1_sel=[os.path.basename(f) for f in files_ch1[sel_t]]
-t_file_ch1_sel=t_file_ch1[sel_t]
-
-#get summary filenames
-files_sum=np.array(glob.glob(os.path.join(source_sum.format(site=site),'assistsummary*cdf')))
-t_file_sum=[]
-for f in files_sum:
-    match = re.search(r'\d{8}\.\d{6}', f)
-    t=datetime.strptime(match.group(0),'%Y%m%d.%H%M%S')
-    t_file_sum=np.append(t_file_sum,t)
-
-sel_t=(t_file_sum>datetime.strptime(sdate,'%Y%m%d'))*(t_file_sum<datetime.strptime(edate,'%Y%m%d'))
-files_sum_sel=[os.path.basename(f) for f in files_sum[sel_t]]
-t_file_sum_sel=t_file_sum[sel_t]
-
-#find matching files
-t_match=utl.match_arrays(t_file_ch1_sel,t_file_sum_sel,timedelta(seconds=config['max_time_diff']))
-
-#%% Main
-for i_ch1,i_sum in zip(t_match[:,0],t_match[:,1]):
-
-    f_ch1=files_ch1_sel[i_ch1]
-    f_sum=files_sum_sel[i_sum]
+# Loop to generate the range of datetimes
+days=[]
+current_date = datetime.strptime(sdate,'%Y%m%d')
+while current_date <= datetime.strptime(edate,'%Y%m%d'):
+    days.append(current_date)
+    current_date += timedelta(days=1)
     
-    if sum([f_ch1 == f for f in processed])==0:
-
-        #load ch1 file time information
-        Data=xr.open_dataset(os.path.join(source_ch1,f_ch1))
-        time=np.sort(np.float64(Data['time'].values)+Data['base_time'].values/10**3)
-        date = utl.datestr(time[0],'%Y%m%d')
-        month= utl.datestr(time[0],'%m')
+#%% Main
+for d in days:
+    date=datetime.strftime(d,'%Y%m%d')
+    month=datetime.strftime(d,'%m')
+    if sum([date == p for p in processed])==0:
 
         #logger
-        if os.path.exists(os.path.join('log',site,date+'_tropoe.log')):
-            open(os.path.join('log',site,date+'_tropoe.log'), 'w').close()
+        if os.path.exists(os.path.join('log',site,date+'.log')):
+            open(os.path.join('log',site,date+'.log'), 'w').close()
         logging.basicConfig(
-            filename=os.path.join('log',site,date+'_tropoe.log'),       # Log file name
+            filename=os.path.join('log',site,date+'.log'),       # Log file name
             level=logging.INFO,      # Set the logging level
             format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
             datefmt='%Y-%m-%d %H:%M:%S'  # Date format
@@ -114,6 +84,7 @@ for i_ch1,i_sum in zip(t_match[:,0],t_match[:,1]):
 
         logger = logging.getLogger()
         logger.info('Running TROPoe at '+site+' on '+date)
+        print('Running TROPoe at '+site+' on '+date)
 
         #create input files
         command=config['path_python']+f' tropoe_inputs.py {site} {date} '
@@ -121,24 +92,42 @@ for i_ch1,i_sum in zip(t_match[:,0],t_match[:,1]):
         logger.info(result.stdout)
         logger.error(result.stderr)
         
-        raise BaseException()
-        
+        if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf')))==1:
+            f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
+            f_sum=glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf'))[0]
+            
+            #time check
+            Data_ch1=xr.open_dataset(f_ch1)
+            time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
+            
+            Data_sum=xr.open_dataset(f_sum)
+            time_sum=np.sort((Data_sum['time'].values+Data_sum['base_time'].values)/np.timedelta64(1,'s'))
+            
+            if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
+                logger.error('Inconsistent time on '+date+'. Skipping.')
+                continue
+        else:
+            logger.error('Missing or multiple files found on '+date+'. Skipping.')
+            continue
+                    
         #run TROPoe
-        command ='./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'.format(date=date,site_prior=config['site_prior'],month=month,site=site)+ \
-        ' 3 '+cd + ' '+ cd + ' davidturner53/tropoe:latest'
-        logger.info('The following will be executed": \n'+command+'\n')
+        command =f'./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'+\
+        ' {verbosity} ' +cd + ' ' + cd + ' davidturner53/tropoe:latest'
+        logger.info('The following will be executed: \n'+command+'\n')
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)
         
         #% plots
-        if len(glob.glob(os.path.join(cd,'data',channel_irs[0].replace('00','c0'),'*'+date+'*cdf')))==1:
+        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0'),'*'+date+'*nc')))==1:
             
             #add to processed list
             with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
-                fid.write(f_ch1+'\n')
+                fid.write(date+'\n')
                 
-            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs[0].replace('00','c0'),'*'+date+'*cdf'))[0]
+            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0'),'*'+date+'*nc'))[0]
+            
+            logger.info('Succesfully created retrieval '+file_tropoe)
         
             Data=xr.open_dataset(file_tropoe)
     
@@ -174,7 +163,7 @@ for i_ch1,i_sum in zip(t_match[:,0],t_match[:,1]):
             ax.grid()
             ax.tick_params(axis='both', which='major')
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y-%m-%d')+'\n File: '+os.path.basename(file_tropoe), x=0.45)
+            ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y%m%d'+'\n File: '+os.path.basename(file_tropoe), x=0.45)
     
             ax=plt.subplot(2,1,2)
             CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
