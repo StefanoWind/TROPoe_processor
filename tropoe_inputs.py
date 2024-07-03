@@ -89,6 +89,13 @@ result = subprocess.run(command, shell=True, text=True,capture_output=True)
 logger.info(result.stdout)
 logger.error(result.stderr)
 
+#remove atmospheric pressure that causes error
+if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
+    f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]
+    Data_ch1=xr.open_dataset(f_ch1).sortby('time')
+    Data_ch1=Data_ch1.rename_vars({'atmosphericPressure':'deprecated_atmosphericPressure'})
+    Data_ch1.to_netcdf(f_ch1)
+
 #get cbh data
 channel_cbh=config['channel_cbh'][site]
 
