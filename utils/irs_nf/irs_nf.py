@@ -409,6 +409,7 @@ def read_sum_noise_data(secs,sdir,sfields,sky_view_angle):
                 to = to[bar]
                 nrad = nrad[bar]
 
+            print(i_ymd)
             if i_ymd == 0:
                 xsecs = bt + to
                 xnrad = nrad.T
