@@ -28,8 +28,9 @@ if len(sys.argv)==1:
     edate='20240520'
 else:
     site=sys.argv[1]
-    date=sys.argv[2]
-
+    sdate=sys.argv[2]
+    edate=sys.argv[3]
+    
 #%% Initialization
 
 #inputs
