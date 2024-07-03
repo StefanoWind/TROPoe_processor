@@ -97,15 +97,16 @@ for d in days:
             f_sum=glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf'))[0]
             
             #time check
-            Data_ch1=xr.open_dataset(f_ch1)
-            time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
-            
-            Data_sum=xr.open_dataset(f_sum)
-            time_sum=np.sort((Data_sum['time'].values+Data_sum['base_time'].values)/np.timedelta64(1,'s'))
-            
-            if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
-                logger.error('Inconsistent time on '+date+'. Skipping.')
-                continue
+            with xr.open_dataset(f_ch1).sortby('time') as Data_ch1:
+                Data_ch1=xr.open_dataset(f_ch1)
+                time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
+                
+                Data_sum=xr.open_dataset(f_sum)
+                time_sum=np.sort((Data_sum['time'].values+Data_sum['base_time'].values)/np.timedelta64(1,'s'))
+                
+                if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
+                    logger.error('Inconsistent time on '+date+'. Skipping.')
+                    continue
         else:
             logger.error('Missing or multiple files found on '+date+'. Skipping.')
             continue
@@ -163,7 +164,7 @@ for d in days:
             ax.grid()
             ax.tick_params(axis='both', which='major')
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y%m%d'+'\n File: '+os.path.basename(file_tropoe), x=0.45)
+            ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y%m%d')+'\n File: '+os.path.basename(file_tropoe), x=0.45)
     
             ax=plt.subplot(2,1,2)
             CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')

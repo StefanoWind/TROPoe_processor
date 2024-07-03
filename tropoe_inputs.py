@@ -13,6 +13,7 @@ import logging
 import subprocess
 import numpy as np
 import xarray as xr
+import shutil
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 import glob
@@ -56,43 +57,37 @@ logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 #%% Main
 
 channel_irs=config['channel_irs'][site]
-if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==0:
-    #download assist data
-    time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nsf']-1),'%Y%m%d%H%M%S'),
-                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-    
-    n_files_irs=trp.download(channel_irs,time_range,config)
-    logger.info(str(n_files_irs)+' ASSIST files downloaded')
-    
-    #copy and rename
-    trp.copy_rename_assist(channel_irs)
 
-    #pca filter
-    logger.info('Running PCA filter')
-    sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nsf']),'%Y%m%d')
-    edate=date
-    chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
-    sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
-    nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
-    
-    command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
-    
-    command=config['path_python']+f' utils/run_irs_nf.py --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
-    
-    #delete previous days
-    files_ncf=glob.glob(os.path.join(cd,channel_irs,'*cdf'))
-    for f in files_ncf:
-        if date not in f:
-            os.remove(f)
-            logger.info('Temporary file '+f+' deleted.')
-else:
-    logger.info('Filtered ASSIST data already available, skipping.')
+if os.path.exists(os.path.join(cd,'data',channel_irs,'nfc')):
+    shutil.rmtree(os.path.join(cd,'data',channel_irs,'nfc'))
+
+#download assist data
+time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nsf']-1),'%Y%m%d%H%M%S'),
+              datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+
+n_files_irs=trp.download(channel_irs,time_range,config)
+logger.info(str(n_files_irs)+' ASSIST files downloaded')
+
+#copy and rename
+trp.copy_rename_assist(channel_irs)
+
+#pca filter
+logger.info('Running PCA filter')
+sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nsf']),'%Y%m%d')
+edate=date
+chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
+sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
+nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
+
+command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+result = subprocess.run(command, shell=True, text=True,capture_output=True)
+logger.info(result.stdout)
+logger.error(result.stderr)
+
+command=config['path_python']+f' utils/run_irs_nf.py --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+result = subprocess.run(command, shell=True, text=True,capture_output=True)
+logger.info(result.stdout)
+logger.error(result.stderr)
 
 #get cbh data
 channel_cbh=config['channel_cbh'][site]
@@ -133,28 +128,28 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
-        Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0]).sortby('time')
-        tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
-        time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
-        sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
         
-        Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
-        tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
-        time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
-        sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
+        with xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0]).sortby('time') as Data_ch1:
+            tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
+            time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
+            sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
         
-        plt.subplot(5,1,1)
-        plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
-        plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
-        plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
-        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
-        plt.grid()
-        plt.legend()
-        date_fmt = mdates.DateFormatter('%H:%M')
-        plt.gca().xaxis.set_major_formatter(date_fmt)
-        plt.title('TROPoe input data on '+date)
-      
-    
+            Data_ch1_nsf=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
+            tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
+            time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
+            sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
+            
+            plt.subplot(5,1,1)
+            plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
+            plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
+            plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
+            plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+            plt.grid()
+            plt.legend()
+            date_fmt = mdates.DateFormatter('%H:%M')
+            plt.gca().xaxis.set_major_formatter(date_fmt)
+            plt.title('TROPoe input data on '+date)
+
     #plot cbh
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
         Data_cbh=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc'))[0])
