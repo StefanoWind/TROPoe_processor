@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-General data preconditionaing for TROPoe
+General data preconditioning for TROPoe
 """
 import os
 cd=os.getcwd()
@@ -44,15 +44,12 @@ with open(source_config, 'r') as fid:
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-if os.path.exists(os.path.join('log',site,date+'_input.log')):
-    open(os.path.join('log',site,date+'_input.log'), 'w').close()
 logging.basicConfig(
-    filename=os.path.join('log',site,date+'_input.log'),       # Log file name
+    filename=os.path.join('log',site,date+'.log'),       # Log file name
     level=logging.INFO,      # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
 )
-
 logger = logging.getLogger()
 logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 
@@ -68,7 +65,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==0:
     logger.info(str(n_files_irs)+' ASSIST files downloaded')
     
     #copy and rename
-    trp.copy_rename_irs(channel_irs)
+    trp.copy_rename_assist(channel_irs)
 
     #pca filter
     logger.info('Running PCA filter')
@@ -125,7 +122,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     logger.info(str(n_files_met)+' met files downloaded')
     
     logger.info('Extracting met data')
-    Output_met=trp.exctract_met(channel_met,date,site,config)
+    Data_met=trp.exctract_met(channel_met,date,site,config)
 else:
     logger.info('Met data already available, skipping.')
     
@@ -145,16 +142,18 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         tnum_ch1_nsf=Data_ch1_nsf.time.values+Data_ch1_nsf.base_time.values/10**3
         time_ch1_nsf=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nsf])
         sky_ch1_nsf=Data_ch1_nsf['sceneMirrorAngle'].values==0
-    
+        
         plt.subplot(5,1,1)
         plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
         plt.plot(time_ch1_nsf[sky_ch1_nsf],Data_ch1_nsf['mean_rad'].interp(wnum=675).values[sky_ch1_nsf],'g',label='Filtered')
         plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.legend()
         date_fmt = mdates.DateFormatter('%H:%M')
         plt.gca().xaxis.set_major_formatter(date_fmt)
-        plt.title('Input data on '+date)
+        plt.title('TROPoe input data on '+date)
+      
     
     #plot cbh
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
@@ -165,6 +164,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.subplot(5,1,2)
         plt.plot(time_cbh[real],Data_cbh.first_cbh.values[real],'.b')
         plt.ylabel('CBH [m]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.gca().xaxis.set_major_formatter(date_fmt)
     
@@ -172,32 +172,35 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         Data_met=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc'))[0])
         
         #plot temperature
-        tnum_met=Data_met.time_offset.values+Output_met.base_time.values
+        tnum_met=Data_met.time_offset.values+Data_met.base_time.values
         time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
         real=Data_met.temp_mean>0
         plt.subplot(5,1,3)
         plt.plot(time_met[real],Data_met.temp_mean.values[real],'.r')
         plt.ylabel(r'$T$ [C]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.gca().xaxis.set_major_formatter(date_fmt)
         
         #plot pressure
-        tnum_met=Output_met.time_offset.values+Output_met.base_time.values
+        tnum_met=Data_met.time_offset.values+Data_met.base_time.values
         time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
-        real=Output_met.atmos_pressure>0
+        real=Data_met.atmos_pressure>0
         plt.subplot(5,1,4)
-        plt.plot(time_met[real],Output_met.atmos_pressure.values[real],'.k')
+        plt.plot(time_met[real],Data_met.atmos_pressure.values[real],'.k')
         plt.ylabel(r'$P$ [kPa]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.gca().xaxis.set_major_formatter(date_fmt)
         
         #plot humidity
-        tnum_met=Output_met.time_offset.values+Output_met.base_time.values
+        tnum_met=Data_met.time_offset.values+Data_met.base_time.values
         time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
-        real=Output_met.rh_mean>0
+        real=Data_met.rh_mean>0
         plt.subplot(5,1,5)
-        plt.plot(time_met[real],Output_met.rh_mean.values[real],'.c')
+        plt.plot(time_met[real],Data_met.rh_mean.values[real],'.c')
         plt.ylabel('RH [%]')
+        plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.tight_layout()
