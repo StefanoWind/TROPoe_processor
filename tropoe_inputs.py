@@ -214,4 +214,4 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.xlabel('Time (UTC)')
     
     utl.mkdir(os.path.join(cd,'data',channel_irs).replace('.00','.c0'))
-    plt.savefig(f_ch1.replace('.00/','.c0/').replace('.00.','.c0.').replace('.assistcha.cdf','_tropoe_inputs.png'))
+    plt.savefig(file_ch1.replace('.00/','.c0/').replace('.00.','.c0.').replace('.assistcha.cdf','_tropoe_inputs.png'))
