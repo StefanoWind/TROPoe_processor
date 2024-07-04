@@ -10,7 +10,6 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 from datetime import timedelta
 import xarray as xr
-import logging
 import subprocess
 import yaml
 import glob as glob
@@ -20,7 +19,7 @@ import matplotlib.dates as mdates
 plt.close('all')
 
 #%% Inputs
-source_config=os.path.join(cd,'configs/config_local.yaml')
+source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
     site='rhod'
@@ -69,17 +68,18 @@ for d in days:
     month=datetime.strftime(d,'%m')
     if sum([date == p for p in processed])==0:
 
-        #logger
-        if os.path.exists(os.path.join('log',site,date+'.log')):
-            open(os.path.join('log',site,date+'.log'), 'w').close()
-        logging.basicConfig(
-            filename=os.path.join('log',site,date+'.log'),       # Log file name
-            level=logging.INFO,      # Set the logging level
-            format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-            datefmt='%Y-%m-%d %H:%M:%S'  # Date format
-        )
+        # #logger
+        # if os.path.exists(os.path.join('log',site,date+'.log')):
+        #     open(os.path.join('log',site,date+'.log'), 'w').close()
+        # logging.basicConfig(
+        #     filename=os.path.join('log',site,date+'.log'),       # Log file name
+        #     level=logging.INFO,      # Set the logging level
+        #     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
+        #     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
+        # )
+        
+        logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 
-        logger = logging.getLogger()
         logger.info('Running TROPoe at '+site+' on '+date)
         print('Running TROPoe at '+site+' on '+date)
 
@@ -103,9 +103,11 @@ for d in days:
             
             if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
                 logger.error('Inconsistent time on '+date+'. Skipping.')
+                utl.close_logger(logger, handler)
                 continue
         else:
             logger.error('Missing or multiple files found on '+date+'. Skipping.')
+            utl.close_logger(logger, handler)
             continue
                     
         #run TROPoe
@@ -185,6 +187,8 @@ for d in days:
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             
             plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
+            utl.close_logger(logger, handler)
     
         else:
             logger.info('Skipping '+f_ch1)
+            utl.close_logger(logger, handler)

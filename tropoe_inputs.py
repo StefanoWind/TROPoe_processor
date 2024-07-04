@@ -29,7 +29,7 @@ plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
-source_config=os.path.join(cd,'configs/config_local.yaml')
+source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
     site='rhod'
@@ -46,12 +46,13 @@ with open(source_config, 'r') as fid:
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-logging.basicConfig(
-    filename=os.path.join('log',site,date+'.log'),       # Log file name
-    level=logging.INFO,      # Set the logging level
-    format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-    datefmt='%Y-%m-%d %H:%M:%S'  # Date format
-)
+# logging.basicConfig(
+#     # filename=os.path.join('log',site,date+'.log'),       # Log file name
+#     level=logging.INFO,      # Set the logging level
+#     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
+#     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
+# )
+logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 logger = logging.getLogger()
 logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 
@@ -136,13 +137,14 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
-        
-        Data_ch1=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]).sortby('time')
+        file_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]
+        Data_ch1=xr.open_dataset(file_ch1).sortby('time')
         tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
         time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
         sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
     
-        Data_ch1_nfc=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]).sortby('time')
+        file_ch1_ncf=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
+        Data_ch1_nfc=xr.open_dataset(file_ch1_ncf).sortby('time')
         tnum_ch1_nfc=Data_ch1_nfc.time.values+Data_ch1_nfc.base_time.values/10**3
         time_ch1_nfc=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nfc])
         sky_ch1_nfc=Data_ch1_nfc['sceneMirrorAngle'].values==0
@@ -160,7 +162,8 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
 
     #plot cbh
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
-        Data_cbh=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc'))[0])
+        file_cbh=glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc'))[0]
+        Data_cbh=xr.open_dataset(file_cbh)
         tnum_cbh=Data_cbh.time.values+Data_cbh.base_time.values
         time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
         real=Data_cbh.first_cbh>0
@@ -172,7 +175,8 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.gca().xaxis.set_major_formatter(date_fmt)
     
     if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==1:
-        Data_met=xr.open_dataset(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc'))[0])
+        file_met=glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc'))[0]
+        Data_met=xr.open_dataset(file_met)
         
         #plot temperature
         tnum_met=Data_met.time_offset.values+Data_met.base_time.values
@@ -209,5 +213,5 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.tight_layout()
         plt.xlabel('Time (UTC)')
     
-    utl.mkdir(os.path.join(cd,'data',channel_irs).replace('00','c0'))
-    plt.savefig(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')
+    utl.mkdir(os.path.join(cd,'data',channel_irs).replace('.00','.c0'))
+    plt.savefig(f_ch1.replace('.00/','.c0/').replace('.00.','.c0.').replace('.assistcha.cdf','_tropoe_inputs.png'))

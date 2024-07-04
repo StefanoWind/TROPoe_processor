@@ -48,7 +48,7 @@ tdir = args.tdir
 create_pca = args.create
 apply_nf = args.apply
 
-print(apply_nf)
+# print(apply_nf)
 
 if (create_pca is False) & (apply_nf is False):
     logger.fatal("Neither --create nor --apply were specified in the arguments, thus this code will do nothing.")
