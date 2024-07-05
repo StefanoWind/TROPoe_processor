@@ -52,7 +52,7 @@ else:
     processed=[]
 
 #create directories
-utl.mkdir(os.path.join(cd,'data',channel_irs)[0].replace('00','c0'))
+utl.mkdir(os.path.join(cd,'data',channel_irs).replace('00','c0').replace('assist','assist.tropoe'))
 utl.mkdir(os.path.join('log',site))
 
 # Loop to generate the range of datetimes
