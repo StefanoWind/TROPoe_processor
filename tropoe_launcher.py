@@ -68,16 +68,6 @@ for d in days:
     month=datetime.strftime(d,'%m')
     if sum([date == p for p in processed])==0:
 
-        # #logger
-        # if os.path.exists(os.path.join('log',site,date+'.log')):
-        #     open(os.path.join('log',site,date+'.log'), 'w').close()
-        # logging.basicConfig(
-        #     filename=os.path.join('log',site,date+'.log'),       # Log file name
-        #     level=logging.INFO,      # Set the logging level
-        #     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-        #     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
-        # )
-        
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 
         logger.info('Running TROPoe at '+site+' on '+date)
@@ -122,7 +112,7 @@ for d in days:
         logger.error(result.stderr)
         
         #% plots
-        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0'),'*'+date+'*nc')))==1:
+        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
             
             #add to processed list
             with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
