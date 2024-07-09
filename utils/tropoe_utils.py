@@ -97,7 +97,7 @@ def compute_cbh_halo(channel,date,config):
     tnum_cbh_all=[]
     cbh_all=[]
     for f in files:
-        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=False)
+        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=config['detailed_plots'])
         tnum_cbh_all=np.append(tnum_cbh_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
         cbh_all=np.append(cbh_all,cbh_lidar)
         

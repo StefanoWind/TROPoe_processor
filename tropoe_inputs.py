@@ -46,18 +46,11 @@ with open(source_config, 'r') as fid:
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-# logging.basicConfig(
-#     # filename=os.path.join('log',site,date+'.log'),       # Log file name
-#     level=logging.INFO,      # Set the logging level
-#     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-#     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
-# )
 logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 logger = logging.getLogger()
 logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 
 #%% Main
-
 channel_irs=config['channel_irs'][site]
 
 if os.path.exists(os.path.join(cd,'data',channel_irs,'nfc')):
