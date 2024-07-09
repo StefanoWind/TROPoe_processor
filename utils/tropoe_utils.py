@@ -93,7 +93,7 @@ def compute_cbh_halo(channel,date,config):
     if not os.path.exists(os.path.join(cd,'data',channel.replace('a0','cbh'))):
         os.mkdir(os.path.join(cd,'data',channel.replace('a0','cbh')))
          
-    files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc'))
+    files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc')))
     tnum_cbh_all=[]
     cbh_all=[]
     for f in files:
@@ -135,7 +135,7 @@ def exctract_met(channel,date,site,config):
         if not os.path.exists(os.path.join(cd,'data',channel.replace('00','sel'))):
             os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
             
-        files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*csv'))
+        files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*csv')))
         tnum_met_all=[]
         temp_all=[]
         press_all=[]
