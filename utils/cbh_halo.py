@@ -1,10 +1,9 @@
 '''
-Estimates first cloud base height from single file of lidar data. Based on Newsom et al. 20??
+Estimates first cloud base height from single file of lidar data. Based on Newsom et al. 2019 [https://www.arm.gov/publications/tech_reports/doe-sc-arm-tr-149.pdf]
 '''
 
 import os
 cd=os.path.dirname(__file__)
-import sys
 
 import xarray as xr
 import numpy as np
@@ -92,23 +91,21 @@ def compute_cbh(file,utl,averages=3,signal='beta',plot=True):
     tnum_3d=tnum.reshape(reps,Nb)
     f_3d=f.reshape(reps,Nb,Nr)
     
-    #averages
+    #time average
     bin_reps=np.arange(0,reps+1,averages)
-    tnum_avg=[]
+    tnum_avg0=[]
     f_avg=[]
     for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
         sel=np.arange(rep1,rep2)
-        tnum_avg=np.append(tnum_avg,np.nanmean(tnum_3d[sel,:],axis=0))
-        f_avg=utl.vstack(f_avg,np.nanmean(f_3d[sel,:,:],axis=0))
-        
-    time_avg=tnum_avg.astype('datetime64[s]')
+        tnum_avg0=np.append(tnum_avg0,np.nanmean(tnum_3d[sel,:],axis=0))
+        f_avg=   utl.vstack(f_avg,    np.nanmean(f_3d[sel,:,:],axis=0))
         
     #gradients
     df_dz=np.gradient(f_avg,axis=1)
     
     #CBH estimation [Newsom et al. 2016]
-    cbh=np.zeros(len(tnum_avg))+np.nan
-    for i in range(len(tnum_avg)):
+    cbh=np.zeros(len(f_avg[:,0]))+np.nan
+    for i in range(len(f_avg[:,0])):
         
         jmin=np.argmin(df_dz[i,:])
         jmax=np.argmax(df_dz[i,:])
@@ -116,6 +113,17 @@ def compute_cbh(file,utl,averages=3,signal='beta',plot=True):
         if dz>=min_dz and dz<=max_dz and df_dz[i,jmin]<-tol and df_dz[i,jmax]>tol:
             j=np.argmax(f[i,jmax:jmin])
             cbh[i]=z[i,jmax+j]
+            
+    #scan average
+    bin_reps=np.arange(0,len(cbh)+1,Nb)
+    tnum_avg=[]
+    cbh_avg=[]
+    for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
+        sel=np.arange(rep1,rep2)
+        tnum_avg=np.append(tnum_avg,np.nanmean(tnum_avg0[sel]))
+        cbh_avg= np.append(cbh_avg, np.nanmean(cbh[sel]))
+    
+    time_avg=tnum_avg.astype('datetime64[s]')
     
     #plots
     if plot:
@@ -135,13 +143,13 @@ def compute_cbh(file,utl,averages=3,signal='beta',plot=True):
         plt.pcolor(time_plot,z_plot,rws_int.T,cmap='seismic')
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.ylabel(r'$z$ [m]')
-        plt.plot(time_avg_plot,cbh,'.c')
+        plt.plot(time_avg_plot,cbh_avg,'.c')
         plt.title(os.path.basename(file))
         plt.colorbar(label=r'$u_{LOS}$ [m s$^{-1}$]')
         
         plt.subplot(3,1,2)
         plt.pcolor(time_plot,z_plot,f_int.T,cmap='hot')
-        plt.plot(time_avg_plot,cbh,'.c')
+        plt.plot(time_avg_plot,cbh_avg,'.c')
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.ylabel(r'$z$ [m]')
         plt.colorbar(label=signal)
@@ -149,4 +157,4 @@ def compute_cbh(file,utl,averages=3,signal='beta',plot=True):
         plt.savefig(figname_save)
         plt.close()
         
-    return time_avg,cbh
+    return time_avg,cbh_avg

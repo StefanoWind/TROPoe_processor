@@ -118,7 +118,7 @@ for d in days:
             with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
                 fid.write(date+'\n')
                 
-            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0'),'*'+date+'*nc'))[0]
+            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
             
             logger.info('Succesfully created retrieval '+file_tropoe)
         
