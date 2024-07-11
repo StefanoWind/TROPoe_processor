@@ -100,7 +100,7 @@ if 'lidar' in channel_cbh:
         time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
                       datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
         
-        n_files_cbh=trp.download(channel_cbh,time_range,config)
+        n_files_cbh=trp.download(channel_cbh,time_range,config,logger)
         logger.info(str(n_files_cbh)+' CBH files downloaded')
         
         logger.info('Running CBH retrieval from lidar')

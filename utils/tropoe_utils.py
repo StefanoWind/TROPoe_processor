@@ -75,7 +75,7 @@ def copy_rename_assist(channel):
 
         
 
-def compute_cbh_halo(channel,date,config):
+def compute_cbh_halo(channel,date,config,logger):
     '''
     Generate daily CBH time series for TROPoe
     '''
@@ -97,9 +97,12 @@ def compute_cbh_halo(channel,date,config):
     tnum_cbh_all=[]
     cbh_all=[]
     for f in files:
-        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=config['detailed_plots'])
-        tnum_cbh_all=np.append(tnum_cbh_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
-        cbh_all=np.append(cbh_all,cbh_lidar)
+        try:
+            time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=config['detailed_plots'])
+            tnum_cbh_all=np.append(tnum_cbh_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
+            cbh_all=np.append(cbh_all,cbh_lidar)
+        except:
+            logger.error('CBH estimation failed on '+f)
         
     basetime_cbh=utl.floor(tnum_cbh_all[0],24*3600)
     time_offset_cbh=tnum_cbh_all-basetime_cbh
