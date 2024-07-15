@@ -120,7 +120,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
     
-    n_files_met=trp.download(channel_met,time_range,config,logger)
+    n_files_met=trp.download(channel_met,time_range,config)
     
     if n_files_met==0:
         logger.error('No met data found. Aborting.')
@@ -129,7 +129,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     logger.info(str(n_files_met)+' met files downloaded')
     
     logger.info('Extracting met data')
-    Data_met=trp.exctract_met(channel_met,date,site,config)
+    Data_met=trp.exctract_met(channel_met,date,site,config,logger)
 else:
     logger.info('Met data already available, skipping.')
     
