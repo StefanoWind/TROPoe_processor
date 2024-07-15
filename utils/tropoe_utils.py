@@ -106,6 +106,10 @@ def compute_cbh_halo(channel,date,config,logger):
         
     basetime_cbh=utl.floor(tnum_cbh_all[0],24*3600)
     time_offset_cbh=tnum_cbh_all-basetime_cbh
+    
+    if np.max(np.diff(np.concatenate([[0],time_offset_cbh,[3600*24]])))>config['max_data_gap']:
+        logger.error('Unallowable data gap found in CBH data. Aborting.')
+        raise BaseException()
 
     Output_cbh=xr.Dataset()
     Output_cbh['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-9999)),
@@ -117,7 +121,7 @@ def compute_cbh_halo(channel,date,config,logger):
 
     return Output_cbh
 
-def exctract_met(channel,date,site,config):
+def exctract_met(channel,date,site,config,logger):
     '''
     Extract met information
     '''
@@ -162,6 +166,10 @@ def exctract_met(channel,date,site,config):
 
         basetime_met=utl.floor(tnum_met_all[0],24*3600)
         time_offset_met=tnum_met_all-basetime_met
+        
+        if np.max(np.diff(np.concatenate([[0],time_offset_met,[3600*24]])))>config['max_data_gap']:
+            logger.error('Unallowable data gap found in met data. Aborting.')
+            raise BaseException()
 
         Output_met=xr.Dataset()
         Output_met['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),

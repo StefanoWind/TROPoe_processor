@@ -101,6 +101,11 @@ if 'lidar' in channel_cbh:
                       datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
         
         n_files_cbh=trp.download(channel_cbh,time_range,config)
+        
+        if n_files_cbh==0:
+            logger.error('No CBH data found. Aborting.')
+            raise BaseException()
+        
         logger.info(str(n_files_cbh)+' CBH files downloaded')
         
         logger.info('Running CBH retrieval from lidar')
@@ -115,7 +120,12 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
     
-    n_files_met=trp.download(channel_met,time_range,config)
+    n_files_met=trp.download(channel_met,time_range,config,logger)
+    
+    if n_files_met==0:
+        logger.error('No met data found. Aborting.')
+        raise BaseException()
+        
     logger.info(str(n_files_met)+' met files downloaded')
     
     logger.info('Extracting met data')
@@ -151,7 +161,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.legend()
         date_fmt = mdates.DateFormatter('%H:%M')
         plt.gca().xaxis.set_major_formatter(date_fmt)
-        plt.title('TROPoe input data on '+date)
+        plt.title('TROPoe input data on '+date+' at '+site)
 
     #plot cbh
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:

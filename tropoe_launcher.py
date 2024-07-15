@@ -36,6 +36,8 @@ else:
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
 channel_irs=config['channel_irs'][site]
+channel_cbh=config['channel_cbh'][site]
+channel_met=config['channel_met'][site]
 site_prior=config['site_prior']
 verbosity=config['verbosity']
 
@@ -78,6 +80,14 @@ for d in days:
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)
+        
+        if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0:
+            logger.error('No CBH inputs found. Skipping.')
+            continue
+        
+        if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0:
+            logger.error('No met inputs found. Skipping.')
+            continue
         
         if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf')))==1:
             f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
@@ -129,13 +139,13 @@ for d in days:
             sel_z=height0<config['max_z']
             height=height0[sel_z]
     
-            T=np.array(Data['temperature'][:,sel_z])#[C]
-            r=np.array(Data['waterVapor'][:,sel_z])#[g/Kg]
-            cbh=np.array(Data['cbh'][:])*1000#[m]
+            T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:,sel_z])#[C]
+            r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:,sel_z])#[g/Kg]
+            cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:])*1000#[m]
             lwp=np.array(Data['lwp'][:])
             cbh_sel=cbh.copy()
             cbh_sel[lwp<config['min_lwp']]=np.nan
-    
+            
             plt.close('all')
             fig=plt.figure(figsize=(18,10))
             ax=plt.subplot(2,1,1)
@@ -157,7 +167,8 @@ for d in days:
             ax.tick_params(axis='both', which='major')
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y%m%d')+'\n File: '+os.path.basename(file_tropoe), x=0.45)
-    
+            ax.set_facecolor((0.9,0.9,0.9))
+            
             ax=plt.subplot(2,1,2)
             CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
             plt.ylim([0,config['max_z']])
@@ -175,6 +186,7 @@ for d in days:
             ax.grid()
             ax.tick_params(axis='both', which='major')
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            ax.set_facecolor((0.9,0.9,0.9))
             
             plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
             utl.close_logger(logger, handler)
