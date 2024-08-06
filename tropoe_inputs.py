@@ -148,6 +148,8 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     
         file_ch1_ncf=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
         Data_ch1_nfc=xr.open_dataset(file_ch1_ncf).sortby('time')
+        Data_ch1_nfc['mean_rad']=xr.where(Data_ch1_nfc['missingDataFlag']==0,Data_ch1_nfc['mean_rad'],np.nan)#mask mean_rad with missingDataFlag
+
         tnum_ch1_nfc=Data_ch1_nfc.time.values+Data_ch1_nfc.base_time.values/10**3
         time_ch1_nfc=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nfc])
         sky_ch1_nfc=Data_ch1_nfc['sceneMirrorAngle'].values==0

@@ -133,6 +133,7 @@ for d in days:
             logger.info('Succesfully created retrieval '+file_tropoe)
         
             Data=xr.open_dataset(file_tropoe)
+            Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
     
             time=np.array(Data['time'])
             height0=np.array(Data['height'][:])*1000
@@ -161,7 +162,7 @@ for d in days:
             cb.set_label(r'Temperature [$^\circ$C]')
             ax.set_xlabel('Time (UTC)')
             ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.set_xlim(time[0]-np.timedelta64(120,'s'),time[-1]+np.timedelta64(120,'s'))
+            ax.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
             ax.set_ylim(0, np.max(height)+10)
             ax.grid()
             ax.tick_params(axis='both', which='major')
@@ -181,7 +182,7 @@ for d in days:
             cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
             ax.set_xlabel('Time (UTC)')
             ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.set_xlim(time[0]-np.timedelta64(120,'s'),time[-1]+np.timedelta64(120,'s'))
+            ax.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
             ax.set_ylim(0, np.max(height)+10)
             ax.grid()
             ax.tick_params(axis='both', which='major')
