@@ -71,6 +71,12 @@ for d in days:
     if sum([date == p for p in processed])==0:
 
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
+        
+        #clear up space
+        command='docker system prune -af'
+        result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
+        logger.info(result.stdout)
+        logger.error(result.stderr)
 
         logger.info('Running TROPoe at '+site+' on '+date)
         print('Running TROPoe at '+site+' on '+date)
