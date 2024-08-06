@@ -50,7 +50,7 @@ def download(channel,time_range,config):
     a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
     return len(files)
 
-def copy_rename_assist(channel):
+def copy_rename_assist(channel,date):
     import os
     cd=os.getcwd()
     import glob
@@ -58,7 +58,7 @@ def copy_rename_assist(channel):
     '''
     rename and copy assist summary files
     '''
-    files=glob.glob(os.path.join(cd,'data',channel,'*cdf'))
+    files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cdf'))
 
     for f in files:
         old_name=os.path.basename(f).split('.')

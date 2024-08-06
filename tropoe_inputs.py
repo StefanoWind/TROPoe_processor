@@ -64,7 +64,7 @@ n_files_irs=trp.download(channel_irs,time_range,config)
 logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
 #copy and rename
-trp.copy_rename_assist(channel_irs)
+trp.copy_rename_assist(channel_irs,date)
 
 #pca filter
 logger.info('Running PCA filter')
@@ -189,7 +189,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         real=Data_met.temp_mean>0
         plt.subplot(5,1,3)
         plt.plot(time_met[real],Data_met.temp_mean.values[real],'.r')
-        plt.ylabel(r'$T$ [C]')
+        plt.ylabel(r'$T$ [$^\circ$C]')
         plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.gca().xaxis.set_major_formatter(date_fmt)
