@@ -50,28 +50,35 @@ def download(channel,time_range,config):
     a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
     return len(files)
 
-def copy_rename_assist(channel,date):
+def copy_rename_assist(channel,sdate, edate):
     import os
     cd=os.getcwd()
     import glob
     import shutil
+    from datetime import datetime,timedelta
     '''
     rename and copy assist summary files
     '''
-    files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cdf'))
-
-    for f in files:
-        old_name=os.path.basename(f).split('.')
-        new_name=old_name[-2]+'.'+old_name[-4]+'.'+old_name[-3]+'.cdf'
-        
-        if not os.path.exists(os.path.join(cd,'data',channel,'ch1')):
-            os.mkdir(os.path.join(cd,'data',channel,'ch1'))
-            os.mkdir(os.path.join(cd,'data',channel,'sum'))
-        
-        if 'assistcha' in f:
-            shutil.copy(f,os.path.join(cd,'data',channel,'ch1',new_name))
-        elif 'assistsummary' in f:
-            shutil.copy(f,os.path.join(cd,'data',channel,'sum',new_name))
+    dates = []
+    cdate = datetime.strptime(sdate,'%Y%m%d')
+    while cdate <= datetime.strptime(edate,'%Y%m%d'):
+        dates.append(datetime.strftime(cdate,'%Y%m%d'))
+        cdate += timedelta(days=1)
+    for d in dates:
+        files=glob.glob(os.path.join(cd,'data',channel,'*'+d+'*cdf'))
+    
+        for f in files:
+            old_name=os.path.basename(f).split('.')
+            new_name=old_name[-2]+'.'+old_name[-4]+'.'+old_name[-3]+'.cdf'
+            
+            if not os.path.exists(os.path.join(cd,'data',channel,'ch1')):
+                os.mkdir(os.path.join(cd,'data',channel,'ch1'))
+                os.mkdir(os.path.join(cd,'data',channel,'sum'))
+            
+            if 'assistcha' in f:
+                shutil.copy(f,os.path.join(cd,'data',channel,'ch1',new_name))
+            elif 'assistsummary' in f:
+                shutil.copy(f,os.path.join(cd,'data',channel,'sum',new_name))
 
         
 
