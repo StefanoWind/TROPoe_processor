@@ -53,8 +53,15 @@ logger.info('Bulding TROPoe inputs for '+date+' at '+site)
 #%% Main
 channel_irs=config['channel_irs'][site]
 
+#clear old tmp files
 if os.path.exists(os.path.join(cd,'data',channel_irs,'nfc')):
     shutil.rmtree(os.path.join(cd,'data',channel_irs,'nfc'))
+    
+if os.path.exists(os.path.join(cd,'data',channel_irs,'ch1')):
+    shutil.rmtree(os.path.join(cd,'data',channel_irs,'ch1'))
+    
+if os.path.exists(os.path.join(cd,'data',channel_irs,'sum')):
+    shutil.rmtree(os.path.join(cd,'data',channel_irs,'sum'))
 
 #download assist data
 time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
@@ -63,9 +70,6 @@ time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days
 n_files_irs=trp.download(channel_irs,time_range,config)
 logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
-#copy and rename
-trp.copy_rename_assist(channel_irs,date)
-
 #pca filter
 logger.info('Running PCA filter')
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']),'%Y%m%d')
@@ -73,6 +77,8 @@ edate=date
 chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
 sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
 nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
+
+trp.copy_rename_assist(channel_irs,sdate,edate)
 
 command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
 result = subprocess.run(command, shell=True, text=True,capture_output=True)
