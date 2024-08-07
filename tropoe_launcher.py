@@ -23,8 +23,8 @@ source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
     site='rhod'
-    sdate='20240520'
-    edate='20240520'
+    sdate='20240519'
+    edate='20240519'
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -146,9 +146,9 @@ for d in days:
             sel_z=height0<config['max_z']
             height=height0[sel_z]
     
-            T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:,sel_z])#[C]
-            r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:,sel_z])#[g/Kg]
-            cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsr']<=config['max_rmsr'])[:])*1000#[m]
+            T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[C]
+            r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[g/Kg]
+            cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:])*1000#[m]
             lwp=np.array(Data['lwp'][:])
             cbh_sel=cbh.copy()
             cbh_sel[lwp<config['min_lwp']]=np.nan
@@ -168,7 +168,7 @@ for d in days:
             cb.set_label(r'Temperature [$^\circ$C]')
             ax.set_xlabel('Time (UTC)')
             ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+            ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
             ax.set_ylim(0, np.max(height)+10)
             ax.grid()
             ax.tick_params(axis='both', which='major')
@@ -188,7 +188,7 @@ for d in days:
             cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
             ax.set_xlabel('Time (UTC)')
             ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+            ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
             ax.set_ylim(0, np.max(height)+10)
             ax.grid()
             ax.tick_params(axis='both', which='major')
