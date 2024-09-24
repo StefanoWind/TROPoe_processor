@@ -210,7 +210,9 @@ def read_ch_radiance_data(files,sky_view_angle):
             #4. it inspects rad at 675 cm-1 for spikes
             
             #1.
+            logger.debug(f'checking for to=0')
             idx=np.where(to>0)[0]
+            logger.debug(f' {str(len(to)-len(idx))} samples found')
             rad=rad[idx,:]
             to=to[idx]
             mirror=mirror[idx]
@@ -231,6 +233,7 @@ def read_ch_radiance_data(files,sky_view_angle):
 
             resp=np.nanmean(resp[:,wnidx],axis=1)
             idx=np.where((np.abs(dfstd)>1) | (np.abs(resp-np.nanmedian(resp))>10000))
+            logger.debug(f' {str(len(idx[0]))} samples with stuck mirror found')
             cqcflag[idx]=1
             
             #3.
@@ -244,6 +247,7 @@ def read_ch_radiance_data(files,sky_view_angle):
             idx=np.where((idxall>=0) & (idxall<len(cqcflag)))[0]
             idxall=idxall[idx]
             cqcflag[idxall]=1
+            logger.debug(f' {str(len(idxall))} samples with hatch moved found')
             #also flag times when hatch is not open or undefined
             cqcflag[hatchopen<1]=1
 
@@ -254,12 +258,13 @@ def read_ch_radiance_data(files,sky_view_angle):
                     mflag = (mirror < 3) | (mirror > 357)
                 else:
                     mflag = (sky_view_angle-3 < mirror) & (mirror < sky_view_angle+3)
-
             idx=np.where((mflag) & (cqcflag==0))[0]
-            wnidx=np.argmin(np.abs(wnum-675))
-            rad_=rad[idx,wnidx]
-            spikes_675=find_spikes(rad_,6)
-            cqcflag[idx[spikes_675>5]]=1
+            if len(idx)>0:
+                wnidx=np.argmin(np.abs(wnum-675))
+                rad_=rad[idx,wnidx]
+                spikes_675=find_spikes(rad_,6)
+                logger.debug(f' {str(len(np.where(spikes_675>5)[0]))} samples with spikes found')
+                cqcflag[idx[spikes_675>5]]=1
 
         except:
             print('searching for stuck mirror, hatch position, and spikes  using ch1 data failed')
@@ -387,6 +392,7 @@ def read_sum_noise_data(secs,sdir,sfields,sky_view_angle):
                 valid_cond[-6:]=True
 
                 cond=(cond_spikes_opaque | cond_spikes_transp | cond_spikes_ADC) & valid_cond
+                logger.debug(f' {str(len(np.where(cond)[0]))} samples in sum flagged')
                 cqcflag[cond]=1
 
             except:
@@ -408,6 +414,7 @@ def read_sum_noise_data(secs,sdir,sfields,sky_view_angle):
 
                 to = to[bar]
                 nrad = nrad[bar]
+
 
             if i_ymd == 0:
                 xsecs = bt + to
@@ -501,8 +508,9 @@ def create_irs_noise_filter(files, sdir, sfields,tdir, pcs_filename=None,
     if min(wnum) < 600:
         logger.debug("I believe I'm working with ch1 data")
         foo = np.where(wnum >= 900)
+        # We assume 30 deg C, which results in an upper threshold of 122RU, which is reasonable for many locations.
         minv = -2
-        maxv = 105
+        maxv = 122
     elif max(wnum) > 2800:
         logger.debug("I believe I'm working with ch2 data")
         foo = np.where(wnum >= 2550)
@@ -526,7 +534,7 @@ def create_irs_noise_filter(files, sdir, sfields,tdir, pcs_filename=None,
         plt.title('Step: Create PC for period '+files[0].split('.')[1]+' to '+files[-1].split('.')[1])
         plt.savefig(os.path.join(tdir,'Create_PCA_radiance'+files[0].split('.')[1]+'_'+files[-1].split('.')[1]+'.png'))
 
-    #If the number of good spectra is too small, then we should abort
+    # If the number of good spectra is too small, then we should abort
     if len(good[0]) <= 3*len(wnum):
         logger.critical("There are TOO FEW good spectra for a good PCA noise filter (need > 3x at least")
         logger.critical("Aborting")
@@ -647,8 +655,9 @@ def apply_irs_noise_filter(files, sdir, sfields, tdir, odir, pcs_filename=None, 
     if min(wnum) < 600:
         logger.debug("I believe I'm working with ch1 data")
         foo = np.where(wnum >= 900)
+        # We assume 30 deg C, which results in an upper threshold of 122RU, which is reasonable for many locations.
         minv = -2
-        maxv = 105
+        maxv = 122
     elif max(wnum) > 2800:
         logger.debug("I believe I'm working with ch2 data")
         foo = np.where(wnum >= 2550)
@@ -668,13 +677,13 @@ def apply_irs_noise_filter(files, sdir, sfields, tdir, odir, pcs_filename=None, 
 
     # If the number of good spectra is too small, then we should abort
 
-    # if len(good[0]) <= 3*len(wnum):
-    #     logger.critical("There are TOO FEW good spectra for a good PCA noise filter (need > 3x at least")
-    #     logger.critical("Aborting")
-    #     os.chdir(tdir)
-    #     for fn in files:
-    #         os.remove(os.path.basename(fn))
-    #     return
+    if len(good[0]) <= 3*len(wnum):
+        logger.critical("There are TOO FEW good spectra for a good PCA noise filter (need > 3x at least")
+        logger.critical("Aborting")
+        os.chdir(tdir)
+        for fn in files:
+            os.remove(os.path.basename(fn))
+        return
 
     # If the keyword is set, use the median noise spectrum instead of the real noise spectrum
     if use_median_noise:
@@ -788,6 +797,11 @@ def apply_irs_noise_filter(files, sdir, sfields, tdir, odir, pcs_filename=None, 
         logger.debug(f"Final data in {os.path.join(odir, os.path.basename(fn))}")
         move(fn, os.path.join(odir, os.path.basename(fn)))
 
+
+ #   #remove the remaining files from  tmp
+ #   for fn in files[:-1]:
+ #       print('remove '+fn)
+ #       os.remove(fn)
 
 
 
