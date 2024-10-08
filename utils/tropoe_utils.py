@@ -84,9 +84,9 @@ def copy_rename_assist(channel,sdate, edate):
                 os.mkdir(os.path.join(cd,'data',channel,'ch1'))
                 os.mkdir(os.path.join(cd,'data',channel,'sum'))
             
-            if 'assistcha' in f:
+            if 'cha' in f:
                 shutil.copy(f,os.path.join(cd,'data',channel,'ch1',new_name))
-            elif 'assistsummary' in f:
+            elif 'summary' in f:
                 shutil.copy(f,os.path.join(cd,'data',channel,'sum',new_name))
 
         
