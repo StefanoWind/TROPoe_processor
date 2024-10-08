@@ -32,8 +32,8 @@ warnings.filterwarnings('ignore')
 source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
-    site='rhod'
-    date='20240520'
+    site='barg'
+    date='20240811'
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -66,9 +66,9 @@ if os.path.exists(os.path.join(cd,'data',channel_irs,'sum')):
 #download assist data
 time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
               datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-
-n_files_irs=trp.download(channel_irs,time_range,config)
-logger.info(str(n_files_irs)+' ASSIST files downloaded')
+if channel_irs not in config['skip_download']:
+    n_files_irs=trp.download(channel_irs,time_range,config)
+    logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
 #pca filter
 logger.info('Running PCA filter')
@@ -101,38 +101,45 @@ if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
 channel_cbh=config['channel_cbh'][site]
 
 #retrieve cbh
-if 'lidar' in channel_cbh:
-    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==0:
+if channel_cbh not in config['skip_download']:
+    
+    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:
         time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
-                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-        
+                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
         n_files_cbh=trp.download(channel_cbh,time_range,config)
+        logger.info(str(n_files_cbh)+' CBH files downloaded')
         
         if n_files_cbh==0:
             logger.error('No CBH data found. Aborting.')
             raise BaseException()
-        
-        logger.info(str(n_files_cbh)+' CBH files downloaded')
-        
-        logger.info('Running CBH retrieval from lidar')
-        Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+            
     else:
         logger.info('CBH data already available, skipping.')
-   
+        
+if 'lidar' in channel_cbh:
+        logger.info('Running CBH retrieval from lidar data')
+        Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+    
+elif 'ceil' in channel_cbh:
+    logger.info('Extracting CBH from ceilometer data')
+    trp.extract_cbh_ceil(channel_cbh,date,config,logger)
+    raise BaseException()
+    
 #get met data
 channel_met=config['channel_met'][site]
 if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
     
     time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
-                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
     
-    n_files_met=trp.download(channel_met,time_range,config)
-    
-    if n_files_met==0:
-        logger.error('No met data found. Aborting.')
-        raise BaseException()
+    if channel_met not in config['skip_download']:
+        n_files_met=trp.download(channel_met,time_range,config)
         
-    logger.info(str(n_files_met)+' met files downloaded')
+        if n_files_met==0:
+            logger.error('No met data found. Aborting.')
+            raise BaseException()
+            
+        logger.info(str(n_files_met)+' met files downloaded')
     
     logger.info('Extracting met data')
     Data_met=trp.exctract_met(channel_met,date,site,config,logger)
@@ -140,9 +147,9 @@ else:
     logger.info('Met data already available, skipping.')
     
 #%% Plots
-
 if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')==0:
     plt.figure(figsize=(18,10))
+    date_fmt = mdates.DateFormatter('%H:%M')
     
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
@@ -167,13 +174,13 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
         plt.grid()
         plt.legend()
-        date_fmt = mdates.DateFormatter('%H:%M')
+        
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.title('TROPoe input data on '+date+' at '+site)
 
     #plot cbh
-    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc')))==1:
-        file_cbh=glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*nc'))[0]
+    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==1:
+        file_cbh=glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc'))[0]
         Data_cbh=xr.open_dataset(file_cbh)
         tnum_cbh=Data_cbh.time.values+Data_cbh.base_time.values
         time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
