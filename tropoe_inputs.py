@@ -123,7 +123,6 @@ if 'lidar' in channel_cbh:
 elif 'ceil' in channel_cbh:
     logger.info('Extracting CBH from ceilometer data')
     trp.extract_cbh_ceil(channel_cbh,date,config,logger)
-    raise BaseException()
     
 #get met data
 channel_met=config['channel_met'][site]
