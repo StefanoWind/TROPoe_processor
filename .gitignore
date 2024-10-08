@@ -12,3 +12,4 @@ __pycache__
 *.yaml
 *.log
 trash/*
+*.dat

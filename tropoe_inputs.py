@@ -72,7 +72,7 @@ if channel_irs not in config['skip_download']:
 
 #pca filter
 logger.info('Running PCA filter')
-sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']),'%Y%m%d')
+sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d')
 edate=date
 chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
 sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
