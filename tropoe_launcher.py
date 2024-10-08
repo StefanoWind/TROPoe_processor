@@ -22,9 +22,9 @@ plt.close('all')
 source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
-    site='rhod'
-    sdate='20240519'
-    edate='20240519'
+    site='barg'
+    sdate='20240930'
+    edate='20240930'
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]

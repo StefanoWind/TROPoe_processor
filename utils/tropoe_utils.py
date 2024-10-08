@@ -34,6 +34,15 @@ def download(channel,time_range,config):
                     'file_type': 'nc',
                     'ext1':['user1'],
                 }
+    
+    elif 'ceil' in channel:
+        _filter = {
+                    'Dataset': channel,
+                    'date_time': {
+                        'between': time_range
+                    },
+                    'file_type': 'nc',
+                }
         
             
     elif 'rhod.met' in channel:
@@ -101,32 +110,33 @@ def compute_cbh_halo(channel,date,config,logger):
         os.mkdir(os.path.join(cd,'data',channel.replace('a0','cbh')))
          
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc')))
-    tnum_cbh_all=[]
+    tnum_all=[]
     cbh_all=[]
     for f in files:
         try:
             time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=config['detailed_plots'])
-            tnum_cbh_all=np.append(tnum_cbh_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
+            tnum_all=np.append(tnum_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
             cbh_all=np.append(cbh_all,cbh_lidar)
         except:
             logger.error('CBH estimation failed on '+f)
         
-    basetime_cbh=utl.floor(tnum_cbh_all[0],24*3600)
-    time_offset_cbh=tnum_cbh_all-basetime_cbh
+    basetime=utl.floor(tnum_all[0],24*3600)
+    time_offset=tnum_all-basetime
     
-    if np.max(np.diff(np.concatenate([[0],time_offset_cbh,[3600*24]])))>config['max_data_gap']:
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
         logger.error('Unallowable data gap found in CBH data. Aborting.')
         raise BaseException()
 
-    Output_cbh=xr.Dataset()
-    Output_cbh['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-9999)),
-                                         coords={'time':np.int32(time_offset_cbh)})
+    Output=xr.Dataset()
+    Output['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-9999)),
+                                         coords={'time':np.int32(time_offset)},
+                                         attrs={'description':'First cloud base height','units':'m'})
 
-    Output_cbh['base_time']=np.int64(basetime_cbh)
-    Output_cbh.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output_cbh.to_netcdf(os.path.join(cd,'data',channel.replace('a0','cbh'),channel.replace('a0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime_cbh,'%Y%m%d.%H%M%S')+'.nc'))
+    Output['base_time']=np.int64(basetime)
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.to_netcdf(os.path.join(cd,'data',channel.replace('a0','cbh'),channel.replace('a0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
 
-    return Output_cbh
+    return Output
 
 def exctract_met(channel,date,site,config,logger):
     '''
@@ -145,7 +155,7 @@ def exctract_met(channel,date,site,config,logger):
     from datetime import datetime
     
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
-    tnum_met_all=[]
+    tnum_all=[]
     temp_all=[]
     press_all=[]
     rh_all=[]
@@ -167,7 +177,7 @@ def exctract_met(channel,date,site,config,logger):
                      '{i:02d}'.format(i=Data.iloc[i,4])+':'+\
                      '{i:05.2f}'.format(i=Data.iloc[i,5])
                      
-                tnum_met_all=np.append(tnum_met_all,utl.datenum(tstr_met,'%Y-%m-%d %H:%M:%S.%f'))
+                tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y-%m-%d %H:%M:%S.%f'))
             
             temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
             press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
@@ -182,29 +192,74 @@ def exctract_met(channel,date,site,config,logger):
             Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
             for i in range(len(Data.index)):
                 tstr_met=Data.iloc[i,0]+' '+Data.iloc[i,1]
-                tnum_met_all=np.append(tnum_met_all,utl.datenum(tstr_met,'%Y/%m/%d %H:%M:%S.%f'))
+                tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y/%m/%d %H:%M:%S.%f'))
             temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
             press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
             rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
         
-    basetime_met=utl.floor(tnum_met_all[0],24*3600)
-    time_offset_met=tnum_met_all-basetime_met
+    basetime=utl.floor(tnum_all[0],24*3600)
+    time_offset=tnum_all-basetime
     
-    if np.max(np.diff(np.concatenate([[0],time_offset_met,[3600*24]])))>config['max_data_gap']:
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
         logger.error('Unallowable data gap found in met data. Aborting.')
         raise BaseException()
 
-    Output_met=xr.Dataset()
-    Output_met['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
-                                         coords={'time':np.arange(len(time_offset_met))})
-    Output_met['atmos_pressure']=xr.DataArray(data=np.nan_to_num(press_all/10,nan=-9999),
-                                         coords={'time':np.arange(len(time_offset_met))})
-    Output_met['rh_mean']=       xr.DataArray(data=np.nan_to_num(rh_all,nan=-9999),
-                                         coords={'time':np.arange(len(time_offset_met))})
-    Output_met['time_offset']=xr.DataArray(data=time_offset_met,
-                                         coords={'time':np.arange(len(time_offset_met))})
-    Output_met['base_time']=np.float64(basetime_met)
-    Output_met.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output_met.to_netcdf(os.path.join(cd,'data',channel.replace('00','sel'),channel.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_met,'%Y%m%d.%H%M%S')+'.nc'))
+    Output=xr.Dataset()
+    Output['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset))},
+                                         attrs={'description':'Surface air temperature','units':'C'})
+    Output['atmos_pressure']=xr.DataArray(data=np.nan_to_num(press_all/10,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset))},
+                                         attrs={'description':'Surface air pressure','units':'kPa'})
+    Output['rh_mean']=       xr.DataArray(data=np.nan_to_num(rh_all,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset))},
+                                         attrs={'description':'Surface relative humidity','units':'%'})
+    Output['time_offset']=xr.DataArray(data=time_offset,
+                                         coords={'time':np.arange(len(time_offset))},
+                                         attrs={'description':'Time since midnight','units':'s'})
+    Output['base_time']=np.float64(basetime)
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.to_netcdf(os.path.join(cd,'data',channel.replace('00','sel'),channel.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
 
-    return Output_met
+    return Output
+
+def extract_cbh_ceil(channel,date,config,logger):
+    '''
+    Extact first CBH from Vaisala ceilometer and format as TROPoe input
+    '''
+    import os
+    cd=os.getcwd()
+    import sys
+    sys.path.append(config['path_utils']) 
+    import utils as utl
+    import glob
+    import xarray as xr
+    import numpy as np
+    from datetime import datetime
+    
+    if not os.path.exists(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh'))):
+        os.mkdir(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh')))
+    
+    #load data
+    files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
+    Data=xr.open_mfdataset(files)
+    
+    cbh=np.float64(Data['cloud_data'].values[:,0])#first CBH
+    
+    #time info (UTC)
+    tnum=np.float64(Data['time'].values)
+    basetime=utl.floor(tnum[0],24*3600)
+    time_offset=tnum-basetime
+    
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
+        logger.error('Unallowable data gap found in CBH data. Aborting.')
+        raise BaseException()
+
+    Output=xr.Dataset()
+    Output['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh,nan=-9999)),
+                                         coords={'time':np.int32(time_offset)},
+                                         attrs={'description':'First cloud base height','units':'m'})
+
+    Output['base_time']=np.int64(basetime)
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.to_netcdf(os.path.join(cd,'data',channel.replace('b0','cbh'),channel.replace('b0','cbh').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
