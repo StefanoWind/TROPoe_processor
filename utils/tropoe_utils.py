@@ -22,7 +22,7 @@ def download(channel,time_range,config):
                         'between': time_range
                     },
                     'file_type': 'cdf',
-                    'ext1':['assistsummary','assistcha'],
+                    'ext1':['assistsummary','assistcha','assistno10cha','assistno11cha','assistno12cha'],
                 }
         
     elif 'lidar' in channel:
@@ -262,4 +262,4 @@ def extract_cbh_ceil(channel,date,config,logger):
 
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output.to_netcdf(os.path.join(cd,'data',channel.replace('b0','cbh'),channel.replace('b0','cbh').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+    Output.to_netcdf(os.path.join(cd,'data',channel.replace('b0','cbh'),channel.replace('b0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
