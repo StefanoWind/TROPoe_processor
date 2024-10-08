@@ -144,16 +144,18 @@ def exctract_met(channel,date,site,config,logger):
     import pandas as pd
     from datetime import datetime
     
+    files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
+    tnum_met_all=[]
+    temp_all=[]
+    press_all=[]
+    rh_all=[]
+    
     if site=='rhod':
-        met_headers=config['met_headers_rhod']
+        met_headers=config['met_headers'][site]
         if not os.path.exists(os.path.join(cd,'data',channel.replace('00','sel'))):
             os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
             
-        files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*csv')))
-        tnum_met_all=[]
-        temp_all=[]
-        press_all=[]
-        rh_all=[]
+        
         for f in files:
             Data=pd.read_csv(f)
             Data.iloc[Data.iloc[:,5].values>=60,5]=59.99
@@ -171,24 +173,38 @@ def exctract_met(channel,date,site,config,logger):
             press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
             rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
 
-        basetime_met=utl.floor(tnum_met_all[0],24*3600)
-        time_offset_met=tnum_met_all-basetime_met
+    elif site=='barg':
+        met_headers=config['met_headers'][site]
+        if not os.path.exists(os.path.join(cd,'data',channel.replace('00','sel'))):
+            os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
         
-        if np.max(np.diff(np.concatenate([[0],time_offset_met,[3600*24]])))>config['max_data_gap']:
-            logger.error('Unallowable data gap found in met data. Aborting.')
-            raise BaseException()
+        for f in files:
+            Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
+            for i in range(len(Data.index)):
+                tstr_met=Data.iloc[i,0]+' '+Data.iloc[i,1]
+                tnum_met_all=np.append(tnum_met_all,utl.datenum(tstr_met,'%Y/%m/%d %H:%M:%S.%f'))
+            temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
+            press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
+            rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
+        
+    basetime_met=utl.floor(tnum_met_all[0],24*3600)
+    time_offset_met=tnum_met_all-basetime_met
+    
+    if np.max(np.diff(np.concatenate([[0],time_offset_met,[3600*24]])))>config['max_data_gap']:
+        logger.error('Unallowable data gap found in met data. Aborting.')
+        raise BaseException()
 
-        Output_met=xr.Dataset()
-        Output_met['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
-                                             coords={'time':np.arange(len(time_offset_met))})
-        Output_met['atmos_pressure']=xr.DataArray(data=np.nan_to_num(press_all/10,nan=-9999),
-                                             coords={'time':np.arange(len(time_offset_met))})
-        Output_met['rh_mean']=       xr.DataArray(data=np.nan_to_num(rh_all,nan=-9999),
-                                             coords={'time':np.arange(len(time_offset_met))})
-        Output_met['time_offset']=xr.DataArray(data=time_offset_met,
-                                             coords={'time':np.arange(len(time_offset_met))})
-        Output_met['base_time']=np.float64(basetime_met)
-        Output_met.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-        Output_met.to_netcdf(os.path.join(cd,'data',channel.replace('00','sel'),channel.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_met,'%Y%m%d.%H%M%S')+'.nc'))
+    Output_met=xr.Dataset()
+    Output_met['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset_met))})
+    Output_met['atmos_pressure']=xr.DataArray(data=np.nan_to_num(press_all/10,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset_met))})
+    Output_met['rh_mean']=       xr.DataArray(data=np.nan_to_num(rh_all,nan=-9999),
+                                         coords={'time':np.arange(len(time_offset_met))})
+    Output_met['time_offset']=xr.DataArray(data=time_offset_met,
+                                         coords={'time':np.arange(len(time_offset_met))})
+    Output_met['base_time']=np.float64(basetime_met)
+    Output_met.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output_met.to_netcdf(os.path.join(cd,'data',channel.replace('00','sel'),channel.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime_met,'%Y%m%d.%H%M%S')+'.nc'))
 
-        return Output_met
+    return Output_met
