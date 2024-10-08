@@ -70,7 +70,7 @@ plt.xlabel('Time (UTC)')
 plt.ylim([0.95*10**5,1.1*10**5])
 plt.xticks(np.arange(Data.time.values[0],Data.time.values[-1],np.timedelta64(3600*24*7, 's'),dtype='datetime64'))
 
-plt.figure(figsize=(18,6))
+plt.figure(figsize=(10,6))
 plt.plot(Data.time.where(Data.time>=np.datetime64(date_break)),Data.sw_responsivity.where(Data.time>=np.datetime64(date_break)),'.k',markersize=1)
 plt.gca().xaxis.set_major_formatter(date_fmt)
 plt.grid()
