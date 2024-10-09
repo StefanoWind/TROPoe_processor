@@ -66,7 +66,7 @@ def copy_rename_assist(channel,sdate, edate):
     import shutil
     from datetime import datetime,timedelta
     '''
-    rename and copy assist summary files
+    Rename and copy assist summary files
     '''
     dates = []
     cdate = datetime.strptime(sdate,'%Y%m%d')
@@ -191,8 +191,8 @@ def exctract_met(channel,date,site,config,logger):
         for f in files:
             Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
             for i in range(len(Data.index)):
-                tstr_met=Data.iloc[i,0]+' '+Data.iloc[i,1]
-                tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y/%m/%d %H:%M:%S.%f'))
+                tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
+                tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
             temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
             press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
             rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 

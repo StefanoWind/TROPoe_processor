@@ -13,7 +13,7 @@ import shutil
 import numpy as np
 
 #%% Inputs
-source='C:/Users/SLETIZIA/Box/wfip3_barge_campbell_raw/20240811*dat'
+source='C:/Users/SLETIZIA/Box/wfip3_barge_campbell_raw/*dat'
 destination='C:/Users/SLETIZIA/codes/TROPoe_processor/data/wfip3/barg.met.z01.00/'
 
 regex_in='(?P<DD>\d{8})_(?P<HH>\d{4}).met.dat'
