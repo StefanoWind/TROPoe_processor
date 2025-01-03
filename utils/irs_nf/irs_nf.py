@@ -784,7 +784,9 @@ def apply_irs_noise_filter(files, sdir, sfields, tdir, odir, pcs_filename=None, 
                 missingDataFlag[j]=0
 
         nc['mean_rad'][:] = rad
-        nc.createVariable('missingDataFlag',np.int32,('time'))
+        
+        if 'missingDataFlag' not in nc.variables:
+            nc.createVariable('missingDataFlag',np.int32,('time'))
         nc['missingDataFlag'][:]=missingDataFlag
         nc['missingDataFlag'].comment='Missing data flag created while doing the PCA noise filtering. 0: good, 1: flagged. Only good data were noise filtered. The flag includes stuck mirror, lossse in responsivity, spikes due to errors in mirror movement, hatch closed, zenith view.'  
         nc.setncattr('Noise_filter_comment', f'PCA noise filter was applied to the data, with {nvecs}'
