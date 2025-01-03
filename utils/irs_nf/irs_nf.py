@@ -201,11 +201,13 @@ def read_ch_radiance_data(files,sky_view_angle):
         try:
             cqcflag = nc['missingDataFlag'][:]
         except IndexError:  # ASSIST doesn't have missingDataFlag
-
+            cqcflag = np.zeros_like(to)
+        
+        try:
             logger.debug(f'Quality control ch data')
             #QC flag for ASSIST (for ch1 data)
             #1. Check for to =0 and remove
-            #2. It checks for stuck mirror or periods contaminated by rain/snow (visible in very noisy radiances or drop in responsivitiy) and flags these periods
+            #2. It checks for stuck mirror or periods contaminated by rain/snow (visible in very noisy radiances or drop in responsivity) and flags these periods
             #3. it inspects rad at 675 cm-1 for spikes
             #4. it inspects rad at 675 cm-1 for spikes
             
@@ -219,8 +221,6 @@ def read_ch_radiance_data(files,sky_view_angle):
             resp=resp[idx,:]
             imag=imag[idx,:]
             hatchopen=hatchopen[idx]
-
-            cqcflag = np.zeros_like(to)
 
             #2. 
             imag=np.array(imag)
@@ -268,8 +268,6 @@ def read_ch_radiance_data(files,sky_view_angle):
 
         except:
             print('searching for stuck mirror, hatch position, and spikes  using ch1 data failed')
-            cqcflag = np.zeros_like(to)
-
 
         nc.close()
 

@@ -33,7 +33,7 @@ source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
     site='barg'
-    date='20240811'
+    date='20240909'
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -70,7 +70,7 @@ if channel_irs not in config['skip_download']:
     n_files_irs=trp.download(channel_irs,time_range,config)
     logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
-#pca filter
+#qc settings
 logger.info('Running PCA filter')
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d')
 edate=date
@@ -78,8 +78,12 @@ chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
 sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
 nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
 
+#pre-conditioning
 trp.copy_rename_assist(channel_irs,sdate,edate)
-
+if config['apply_prefilter']:
+    trp.pre_filter(files=glob.glob(chassistdir+'/*cdf'),logger=logger)
+    
+#pca filter
 command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
 result = subprocess.run(command, shell=True, text=True,capture_output=True)
 logger.info(result.stdout)

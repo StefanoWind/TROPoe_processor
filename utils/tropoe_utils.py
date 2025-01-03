@@ -263,3 +263,39 @@ def extract_cbh_ceil(channel,date,config,logger):
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
     Output.to_netcdf(os.path.join(cd,'data',channel.replace('b0','cbh'),channel.replace('b0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+
+def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=None):
+    '''
+    Add missingDataFlag to raw ASSIST data.
+    
+    Inputs:
+        files: list of files to process
+        min_resp: minimum responsivity at wnum=res_wnum as a fraction of maximum responsivity
+        max_ir: maximum absolute value of imaginary radiance at wnum=ir_wnum
+        logger: handler to logger
+    '''
+    import numpy as np
+    import xarray as xr
+    import os
+    for f in files:
+        Data=xr.open_dataset(f,mode='r')
+        
+        #data extraction
+        resp=Data.mean_resp.interp(wnum=resp_wnum)
+        ir=Data.mean_imag_rad.interp(wnum=ir_wnum)
+
+        #QC
+        f_all=((resp<min_resp*np.nanpercentile(resp, 99)) + (np.abs(ir)>max_ir))+0
+        f_abb=f_all.where(np.round(Data.sceneMirrorAngle)==60)
+        f_abb_fill=((f_abb.bfill(dim='time')+f_abb.ffill(dim='time'))>0)+0
+
+        f_hbb=f_all.where(np.round(Data.sceneMirrorAngle)==300)
+        f_hbb_fill=((f_hbb.bfill(dim='time')+f_hbb.ffill(dim='time'))>0)+0
+
+        Data['missingDataFlag']=((f_abb_fill+f_hbb_fill+f_all)>0)+0
+        
+        logger.info(f'{np.sum(Data.missingDataFlag.values==1)} bad spectra identified in pre-filter.')
+        
+        Data.to_netcdf(f.replace('.cdf','_temp.cdf'))
+        Data.close()
+        os.replace(f.replace('.cdf','_temp.cdf'),f)
