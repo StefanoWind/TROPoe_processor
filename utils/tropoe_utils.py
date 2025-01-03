@@ -189,7 +189,16 @@ def exctract_met(channel,date,site,config,logger):
             os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
         
         for f in files:
-            Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
+            try:
+                Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
+            except:
+                logger.error(f+' failed to load')
+            
+            len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
+            len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
+            
+            Data=Data[(len_date==10)*(len_time==12)]
+            
             for i in range(len(Data.index)):
                 tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
                 tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
