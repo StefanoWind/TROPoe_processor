@@ -23,8 +23,8 @@ source_config=os.path.join(cd,'configs/config.yaml')
 
 if len(sys.argv)==1:
     site='barg'
-    sdate='20240811'
-    edate='20240811'
+    sdate='20240909'
+    edate='20240909'
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -54,8 +54,8 @@ else:
     processed=[]
 
 #create directories
-utl.mkdir(os.path.join(cd,'data',channel_irs).replace('00','c0').replace('assist','assist.tropoe'))
-utl.mkdir(os.path.join('log',site))
+os.makedirs(os.path.join(cd,'data',channel_irs).replace('00','c0').replace('assist','assist.tropoe'),exist_ok=True)
+os.makedirs(os.path.join('log',site),exist_ok=True)
 
 # Loop to generate the range of datetimes
 days=[]
@@ -73,7 +73,7 @@ for d in days:
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
         
         #clear up space
-        command='docker system prune -af'
+        command='docker image prune -f'
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)
@@ -115,7 +115,8 @@ for d in days:
             logger.error('Missing or multiple files found on '+date+'. Skipping.')
             utl.close_logger(logger, handler)
             continue
-                    
+        
+        raise BaseException()
         #run TROPoe
         command='chmod -R 777 '+cd
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)

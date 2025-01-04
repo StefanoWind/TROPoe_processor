@@ -53,7 +53,16 @@ def download(channel,time_range,config):
                     },
                     'file_type': 'csv',
                 }
-    
+        
+    elif 'barg.ecflux' in channel:
+        _filter = {
+                    'Dataset': channel,
+                    'date_time': {
+                        'between': time_range
+                    },
+                    'file_type': 'nc',
+                }
+   
     
     files=a2e.search(_filter)
     a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
@@ -105,9 +114,8 @@ def compute_cbh_halo(channel,date,config,logger):
     import numpy as np
     import xarray as xr
     from datetime import datetime
-    
-    if not os.path.exists(os.path.join(cd,'data',channel.replace('a0','cbh'))):
-        os.mkdir(os.path.join(cd,'data',channel.replace('a0','cbh')))
+
+    os.makedirs(os.path.join(cd,'data',channel.replace('a0','cbh')),exist_ok=True)
          
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc')))
     tnum_all=[]
@@ -160,14 +168,18 @@ def exctract_met(channel,date,site,config,logger):
     press_all=[]
     rh_all=[]
     
+
+    os.makedirs(os.path.join(cd,'data',channel[:-2]+'sel'),exist_ok=True)
+    
     if site=='rhod':
         met_headers=config['met_headers'][site]
-        if not os.path.exists(os.path.join(cd,'data',channel.replace('00','sel'))):
-            os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
-            
         
         for f in files:
-            Data=pd.read_csv(f)
+            try:
+                Data=pd.read_csv(f)
+            except:
+                logger.error(f+' failed to load')
+                
             Data.iloc[Data.iloc[:,5].values>=60,5]=59.99
             for i in range(len(Data.index)):
                 tstr_met='{i:04d}'.format(i=Data.iloc[i,0])+'-'+\
@@ -184,27 +196,38 @@ def exctract_met(channel,date,site,config,logger):
             rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
 
     elif site=='barg':
-        met_headers=config['met_headers'][site]
-        if not os.path.exists(os.path.join(cd,'data',channel.replace('00','sel'))):
-            os.mkdir(os.path.join(cd,'data',channel.replace('00','sel')))
-        
-        for f in files:
-            try:
-                Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
-            except:
-                logger.error(f+' failed to load')
+        if 'barg' in config['met_headers']:
+            met_headers=config['met_headers'][site]
+            for f in files:
+                try:
+                    Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
+                except:
+                    logger.error(f+' failed to load')
+                
+                len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
+                len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
+                
+                Data=Data[(len_date==10)*(len_time==12)]
+                
+                for i in range(len(Data.index)):
+                    tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
+                    tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
+                temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
+                press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
+                rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
             
-            len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
-            len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
-            
-            Data=Data[(len_date==10)*(len_time==12)]
-            
-            for i in range(len(Data.index)):
-                tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
-                tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
-            temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
-            press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
-            rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
+    
+        else:
+            for f in files:
+                try:
+                    Data=xr.open_dataset(f, decode_times=False)
+                except:
+                    logger.error(f+' failed to load')
+                
+                tnum_all=np.append(tnum_all,(Data.time.values-719529)*60*60*24)#matlab time ot UNIX timestamp
+                temp_all=np.append(temp_all,Data['air_temp_c'].sel(air_temp_sensors=0).values)
+                press_all=np.append(press_all,Data['air_press_mb'].sel(num_air_press=0).values)
+                rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values) 
         
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
@@ -228,7 +251,7 @@ def exctract_met(channel,date,site,config,logger):
                                          attrs={'description':'Time since midnight','units':'s'})
     Output['base_time']=np.float64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output.to_netcdf(os.path.join(cd,'data',channel.replace('00','sel'),channel.replace('00','sel').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+    Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'sel',channel[:-2].replace('wfip3/','')+'sel'+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
 
     return Output
 
