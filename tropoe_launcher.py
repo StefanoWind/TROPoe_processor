@@ -116,7 +116,6 @@ for d in days:
             utl.close_logger(logger, handler)
             continue
         
-        raise BaseException()
         #run TROPoe
         command='chmod -R 777 '+cd
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)

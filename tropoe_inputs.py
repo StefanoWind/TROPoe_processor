@@ -211,8 +211,6 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.gca().xaxis.set_major_formatter(date_fmt)
         
         #plot pressure
-        tnum_met=Data_met.time_offset.values+Data_met.base_time.values
-        time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
         real=Data_met.atmos_pressure>0
         plt.subplot(5,1,4)
         plt.plot(time_met[real],Data_met.atmos_pressure.values[real],'.k')
@@ -222,8 +220,6 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         plt.gca().xaxis.set_major_formatter(date_fmt)
         
         #plot humidity
-        tnum_met=Data_met.time_offset.values+Data_met.base_time.values
-        time_met=np.array([datetime.utcfromtimestamp(t) for t in tnum_met])
         real=Data_met.rh_mean>0
         plt.subplot(5,1,5)
         plt.plot(time_met[real],Data_met.rh_mean.values[real],'.c')

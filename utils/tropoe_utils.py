@@ -168,7 +168,6 @@ def exctract_met(channel,date,site,config,logger):
     press_all=[]
     rh_all=[]
     
-
     os.makedirs(os.path.join(cd,'data',channel[:-2]+'sel'),exist_ok=True)
     
     if site=='rhod':
@@ -196,6 +195,8 @@ def exctract_met(channel,date,site,config,logger):
             rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
 
     elif site=='barg':
+        
+        #run this if using the raw met data
         if 'barg' in config['met_headers']:
             met_headers=config['met_headers'][site]
             for f in files:
@@ -204,19 +205,20 @@ def exctract_met(channel,date,site,config,logger):
                 except:
                     logger.error(f+' failed to load')
                 
-                len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
-                len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
-                
-                Data=Data[(len_date==10)*(len_time==12)]
-                
-                for i in range(len(Data.index)):
-                    tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
-                    tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
-                temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
-                press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
-                rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
+                    #remove invalid rows
+                    len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
+                    len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
+                    
+                    Data=Data[(len_date==10)*(len_time==12)]
+                    
+                    for i in range(len(Data.index)):
+                        tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
+                        tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
+                    temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
+                    press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
+                    rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
             
-    
+        #rund this if using the a0 met data
         else:
             for f in files:
                 try:
@@ -224,10 +226,10 @@ def exctract_met(channel,date,site,config,logger):
                 except:
                     logger.error(f+' failed to load')
                 
-                tnum_all=np.append(tnum_all,(Data.time.values-719529)*60*60*24)#matlab time ot UNIX timestamp
-                temp_all=np.append(temp_all,Data['air_temp_c'].sel(air_temp_sensors=0).values)
-                press_all=np.append(press_all,Data['air_press_mb'].sel(num_air_press=0).values)
-                rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values) 
+                    tnum_all=np.append(tnum_all,(Data.time.values-719529)*60*60*24)#Matlab time ot UNIX timestamp
+                    temp_all=np.append(temp_all,Data['air_temp_c'].sel(air_temp_sensors=0).values)
+                    press_all=np.append(press_all,Data['air_press_mb'].sel(num_air_press=0).values)
+                    rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values) 
         
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
@@ -269,8 +271,7 @@ def extract_cbh_ceil(channel,date,config,logger):
     import numpy as np
     from datetime import datetime
     
-    if not os.path.exists(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh'))):
-        os.mkdir(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh')))
+    os.makedirs(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh')),exist_ok=True)
     
     #load data
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
