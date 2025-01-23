@@ -36,6 +36,7 @@ if len(sys.argv)==1:
 else:
     site=sys.argv[1]
     date=sys.argv[2]
+    source_config=sys.argv[3]
 
 #%% Initialization
 with open(source_config, 'r') as fid:

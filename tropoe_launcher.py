@@ -82,7 +82,7 @@ for d in days:
         print('Running TROPoe at '+site+' on '+date)
 
         #create input files
-        command=config['path_python']+f' tropoe_inputs.py {site} {date} source_config'
+        command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config}'
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)
