@@ -19,12 +19,12 @@ import matplotlib.dates as mdates
 plt.close('all')
 
 #%% Inputs
-source_config=os.path.join(cd,'configs/config.yaml')
+source_config=os.path.join(cd,'configs/config_basic.yaml')
 
 if len(sys.argv)==1:
-    site='barg'
-    sdate='20240909'
-    edate='20240909'
+    site='nwtc.z02'
+    sdate='20220515'
+    edate='20220516'
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -38,7 +38,7 @@ with open(source_config, 'r') as fid:
 channel_irs=config['channel_irs'][site]
 channel_cbh=config['channel_cbh'][site]
 channel_met=config['channel_met'][site]
-site_prior=config['site_prior']
+site_prior=config['site_prior'][site]
 verbosity=config['verbosity']
 
 #imports
@@ -82,7 +82,7 @@ for d in days:
         print('Running TROPoe at '+site+' on '+date)
 
         #create input files
-        command=config['path_python']+f' tropoe_inputs.py {site} {date} '
+        command=config['path_python']+f' tropoe_inputs.py {site} {date} source_config'
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)

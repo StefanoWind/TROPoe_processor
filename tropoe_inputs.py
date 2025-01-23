@@ -29,11 +29,10 @@ plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
-source_config=os.path.join(cd,'configs/config.yaml')
-
 if len(sys.argv)==1:
-    site='barg'
-    date='20240909'
+    site='nwtc.z02'
+    date='20220515'
+    source_config=os.path.join(cd,'configs/config_basic.yaml')
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -66,7 +65,7 @@ if os.path.exists(os.path.join(cd,'data',channel_irs,'sum')):
 #download assist data
 time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
               datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-if channel_irs not in config['skip_download']:
+if channel_irs !="":
     n_files_irs=trp.download(channel_irs,time_range,config)
     logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
@@ -103,10 +102,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
 
 #get cbh data
 channel_cbh=config['channel_cbh'][site]
-
-#retrieve cbh
-if channel_cbh not in config['skip_download']:
-    
+if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:
         time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
                       datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
@@ -117,37 +113,40 @@ if channel_cbh not in config['skip_download']:
             logger.error('No CBH data found. Aborting.')
             raise BaseException()
             
+        if 'lidar' in channel_cbh:
+                logger.info('Running CBH retrieval from lidar data')
+                Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+            
+        elif 'ceil' in channel_cbh:
+            logger.info('Extracting CBH from ceilometer data')
+            trp.extract_cbh_ceil(channel_cbh,date,config,logger)
+            
     else:
         logger.info('CBH data already available, skipping.')
         
-if 'lidar' in channel_cbh:
-        logger.info('Running CBH retrieval from lidar data')
-        Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
-    
-elif 'ceil' in channel_cbh:
-    logger.info('Extracting CBH from ceilometer data')
-    trp.extract_cbh_ceil(channel_cbh,date,config,logger)
-    
+else:
+    logger.info('No CBH channel provided.')
+        
 #get met data
 channel_met=config['channel_met'][site]
-if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
-    
-    time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
-                  datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
-    
-    if channel_met not in config['skip_download']:
+if channel_met !="":
+    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
+        time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
+                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
         n_files_met=trp.download(channel_met,time_range,config)
+        logger.info(str(n_files_met)+' met files downloaded')
         
         if n_files_met==0:
             logger.error('No met data found. Aborting.')
             raise BaseException()
             
-        logger.info(str(n_files_met)+' met files downloaded')
-    
-    logger.info('Extracting met data')
-    Data_met=trp.exctract_met(channel_met,date,site,config,logger)
+        logger.info('Extracting met data')
+        Data_met=trp.exctract_met(channel_met,date,site,config,logger)
+        
+    else:
+        logger.info('Met data already available, skipping.')
 else:
-    logger.info('Met data already available, skipping.')
+    logger.info('No met channel provided.')    
     
 #%% Plots
 if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))[0].replace('00','c0')+'.rhod.tropoeinput.png')==0:

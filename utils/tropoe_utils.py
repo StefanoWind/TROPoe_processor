@@ -115,7 +115,7 @@ def compute_cbh_halo(channel,date,config,logger):
     import xarray as xr
     from datetime import datetime
 
-    os.makedirs(os.path.join(cd,'data',channel.replace('a0','cbh')),exist_ok=True)
+    os.makedirs(os.path.join(cd,'data',channel[:-2]+'cbh'),exist_ok=True)
          
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc')))
     tnum_all=[]
@@ -142,7 +142,8 @@ def compute_cbh_halo(channel,date,config,logger):
 
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output.to_netcdf(os.path.join(cd,'data',channel.replace('a0','cbh'),channel.replace('a0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+    name_save=channel.split('/')[1][:-1]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
+    Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
 
     return Output
 
@@ -253,7 +254,8 @@ def exctract_met(channel,date,site,config,logger):
                                          attrs={'description':'Time since midnight','units':'s'})
     Output['base_time']=np.float64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'sel',channel[:-2].replace('wfip3/','')+'sel'+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+    name_save=channel.split('/')[1][:-2]+'sel'+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
+    Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'sel',name_save))
 
     return Output
 
@@ -271,11 +273,11 @@ def extract_cbh_ceil(channel,date,config,logger):
     import numpy as np
     from datetime import datetime
     
-    os.makedirs(os.path.join(cd,'data',channel.replace(channel[-2:],'cbh')),exist_ok=True)
+    os.makedirs(os.path.join(cd,'data',channel[:-2]+'cbh'),exist_ok=True)
     
     #load data
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
-    Data=xr.open_mfdataset(files)
+    Data=xr.open_mfdataset(files,combine="nested",concat_dim="time")
     
     cbh=np.float64(Data['cloud_data'].values[:,0])#first CBH
     
@@ -295,7 +297,8 @@ def extract_cbh_ceil(channel,date,config,logger):
 
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    Output.to_netcdf(os.path.join(cd,'data',channel.replace('b0','cbh'),channel.replace('b0','ceil').replace('wfip3/','')+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'))
+    name_save=channel.split('/')[1][:-1]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
+    Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
 
 def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=None):
     '''
