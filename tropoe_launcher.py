@@ -87,11 +87,11 @@ for d in days:
         logger.info(result.stdout)
         logger.error(result.stderr)
         
-        if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0:
+        if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0 and channel_cbh !="":
             logger.error('No CBH inputs found. Skipping.')
             continue
         
-        if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0:
+        if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0 and channel_met !="":
             logger.error('No met inputs found. Skipping.')
             continue
         
