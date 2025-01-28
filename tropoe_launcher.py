@@ -40,6 +40,8 @@ channel_cbh=config['channel_cbh'][site]
 channel_met=config['channel_met'][site]
 site_prior=config['site_prior'][site]
 verbosity=config['verbosity']
+image_name=config['image_name']
+image_type=config['image_type']
 
 #imports
 sys.path.append(config['path_utils']) 
@@ -73,10 +75,11 @@ for d in days:
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
         
         #clear up space
-        command='docker image prune -f'
-        result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
-        logger.info(result.stdout)
-        logger.error(result.stderr)
+        if image_type=='docker':
+            command='docker image prune -f'
+            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
+            logger.info(result.stdout)
+            logger.error(result.stderr)
 
         logger.info('Running TROPoe at '+site+' on '+date)
         print('Running TROPoe at '+site+' on '+date)
@@ -121,7 +124,7 @@ for d in days:
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
         
         command =f'./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'+\
-        f' {verbosity} ' +cd + ' ' + cd + ' davidturner53/tropoe:latest'
+        f' {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
