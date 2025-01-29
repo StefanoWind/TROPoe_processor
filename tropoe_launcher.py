@@ -11,6 +11,7 @@ from datetime import datetime
 from datetime import timedelta
 import xarray as xr
 import subprocess
+import shutil
 import yaml
 import glob as glob
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -74,6 +75,9 @@ for d in days:
 
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
         
+        #define temporary directories
+        tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+        
         #clear up space
         if image_type=='docker':
             command='docker image prune -f'
@@ -85,7 +89,7 @@ for d in days:
         print('Running TROPoe at '+site+' on '+date)
 
         #create input files
-        command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config}'
+        command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config} {tmpdir}'
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
         logger.error(result.stderr)
@@ -98,9 +102,9 @@ for d in days:
             logger.error('No met inputs found. Skipping.')
             continue
         
-        if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf')))==1:
-            f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
-            f_sum=glob.glob(os.path.join(cd,'data',channel_irs,'sum','*'+date+'*cdf'))[0]
+        if len(glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf')))==1:
+            f_ch1=glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf'))[0]
+            f_sum=glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf'))[0]
             
             #time check
             Data_ch1=xr.open_dataset(f_ch1)
@@ -123,8 +127,9 @@ for d in days:
         command='chmod -R 777 '+cd
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
         
-        command =f'./run_tropoe_ops.sh {date} configs/vip_{site}.txt prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf 0 24'+\
-        f' {verbosity} {cd} {cd} {image_name} {image_type}'
+        vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+        prior_file='prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+        command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
         logger.info(result.stdout)
@@ -136,6 +141,10 @@ for d in days:
             #add to processed list
             with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
                 fid.write(date+'\n')
+            
+            #clear temp files
+            if os.path.exists(tmpdir):
+                shutil.rmtree(tmpdir)
                 
             file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
             

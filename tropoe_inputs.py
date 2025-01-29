@@ -29,39 +29,57 @@ plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
+
 if len(sys.argv)==1:
     site='nwtc.z02'
     date='20220515'
     source_config=os.path.join(cd,'configs/config_basic.yaml')
+    
 else:
     site=sys.argv[1]
     date=sys.argv[2]
     source_config=sys.argv[3]
+    chassistdir=sys.argv[4]
+    sumassistdir=sys.argv[4]
+    nfchassistdir=sys.argv[4]
 
 #%% Initialization
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
-    
+
 #imports
 sys.path.append(config['path_utils']) 
 import utils as utl
 
+
+
 logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 logger = logging.getLogger()
-logger.info('Bulding TROPoe inputs for '+date+' at '+site)
+logger.info('Building TROPoe inputs for '+date+' at '+site)
 
 #%% Main
 channel_irs=config['channel_irs'][site]
 
-#clear old tmp files
-if os.path.exists(os.path.join(cd,'data',channel_irs,'nfc')):
-    shutil.rmtree(os.path.join(cd,'data',channel_irs,'nfc'))
+#define temporary directory if not provided
+if len(sys.argv)==1:
+    tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+
+#clear old temp files
+if os.path.exists(tmpdir):
+    shutil.rmtree(tmpdir)
     
-if os.path.exists(os.path.join(cd,'data',channel_irs,'ch1')):
-    shutil.rmtree(os.path.join(cd,'data',channel_irs,'ch1'))
-    
-if os.path.exists(os.path.join(cd,'data',channel_irs,'sum')):
-    shutil.rmtree(os.path.join(cd,'data',channel_irs,'sum'))
+os.makedirs(tmpdir,exist_ok=True)
+
+chassistdir=os.path.join(tmpdir,'ch1')
+sumassistdir=os.path.join(tmpdir,'sum')
+nfchassistdir=os.path.join(tmpdir,'nfc')
+
+#create temp vip file
+with open(os.path.join(cd,'configs',f'vip_{site}.txt'), "r") as f:
+    vip = f.read()
+vip=vip.replace('{date}',date)
+with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
+    f.write(vip)
 
 #download assist data
 time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
@@ -74,12 +92,9 @@ if channel_irs !="":
 logger.info('Running PCA filter')
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d')
 edate=date
-chassistdir=os.path.join(cd,'data',channel_irs,'ch1')
-sumassistdir=os.path.join(cd,'data',channel_irs,'sum')
-nfchassistdir=os.path.join(cd,'data',channel_irs,'nfc')
 
 #pre-conditioning
-trp.copy_rename_assist(channel_irs,sdate,edate)
+trp.copy_rename_assist(channel_irs,sdate,edate,chassistdir,sumassistdir)
 if config['apply_prefilter']:
     trp.pre_filter(files=glob.glob(chassistdir+'/*cdf'),logger=logger)
     
@@ -95,8 +110,8 @@ logger.info(result.stdout)
 logger.error(result.stderr)
 
 #remove atmospheric pressure that causes error
-if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
-    f_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
+if len(glob.glob(nfchassistdir,'*'+date+'*cdf'))==1:
+    f_ch1=glob.glob(nfchassistdir,'*'+date+'*cdf')[0]
     Data_ch1 = Dataset(f_ch1,'a')
     Data_ch1.renameVariable('atmosphericPressure','deprecated_atmosphericPressure')
     Data_ch1.close()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Auxiliary modules for TROPoe
 """
@@ -68,7 +67,7 @@ def download(channel,time_range,config):
     a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
     return len(files)
 
-def copy_rename_assist(channel,sdate, edate):
+def copy_rename_assist(channel,sdate, edate,chassistdir,sumassistdir):
     import os
     cd=os.getcwd()
     import glob
@@ -77,11 +76,19 @@ def copy_rename_assist(channel,sdate, edate):
     '''
     Rename and copy assist summary files
     '''
+    
+    #create folders
+    os.makedirs(chassistdir,exist_ok=True)
+    os.makedirs(sumassistdir,exist_ok=True)
+    
+    #define date rage
     dates = []
     cdate = datetime.strptime(sdate,'%Y%m%d')
     while cdate <= datetime.strptime(edate,'%Y%m%d'):
         dates.append(datetime.strftime(cdate,'%Y%m%d'))
         cdate += timedelta(days=1)
+        
+    #copy  and rename files
     for d in dates:
         files=glob.glob(os.path.join(cd,'data',channel,'*'+d+'*cdf'))
     
@@ -89,16 +96,10 @@ def copy_rename_assist(channel,sdate, edate):
             old_name=os.path.basename(f).split('.')
             new_name=old_name[-2]+'.'+old_name[-4]+'.'+old_name[-3]+'.cdf'
             
-            if not os.path.exists(os.path.join(cd,'data',channel,'ch1')):
-                os.mkdir(os.path.join(cd,'data',channel,'ch1'))
-                os.mkdir(os.path.join(cd,'data',channel,'sum'))
-            
             if 'cha' in f:
-                shutil.copy(f,os.path.join(cd,'data',channel,'ch1',new_name))
+                shutil.copy(f,os.path.join(chassistdir,new_name))
             elif 'summary' in f:
-                shutil.copy(f,os.path.join(cd,'data',channel,'sum',new_name))
-
-        
+                shutil.copy(f,os.path.join(sumassistdir,new_name))
 
 def compute_cbh_halo(channel,date,config,logger):
     '''
