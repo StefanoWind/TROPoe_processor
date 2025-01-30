@@ -108,7 +108,7 @@ def process_day(date,config):
         
         #run TROPoe
         vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        month=datetime.strftime(date,'%m')
+        month=date[4:6]
         prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
         command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')

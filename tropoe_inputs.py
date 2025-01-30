@@ -54,7 +54,7 @@ logger.info('Building TROPoe inputs for '+date+' at '+site)
 
 #%% Main
 channel_irs=config['channel_irs'][site]
-n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*nc')))
+n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
 if n_files_irs==0:
     logger.error('No ASSIST data found. Aborting.')
     raise BaseException()
