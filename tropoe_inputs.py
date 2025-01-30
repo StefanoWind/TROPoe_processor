@@ -39,9 +39,7 @@ else:
     site=sys.argv[1]
     date=sys.argv[2]
     source_config=sys.argv[3]
-    chassistdir=sys.argv[4]
-    sumassistdir=sys.argv[4]
-    nfchassistdir=sys.argv[4]
+    tmpdir=sys.argv[4]
 
 #%% Initialization
 with open(source_config, 'r') as fid:
@@ -110,8 +108,8 @@ logger.info(result.stdout)
 logger.error(result.stderr)
 
 #remove atmospheric pressure that causes error
-if len(glob.glob(nfchassistdir,'*'+date+'*cdf'))==1:
-    f_ch1=glob.glob(nfchassistdir,'*'+date+'*cdf')[0]
+if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
+    f_ch1=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
     Data_ch1 = Dataset(f_ch1,'a')
     Data_ch1.renameVariable('atmosphericPressure','deprecated_atmosphericPressure')
     Data_ch1.close()
@@ -170,8 +168,8 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     date_fmt = mdates.DateFormatter('%H:%M')
     
     #plot radiance at 675 cm^-1
-    if len(glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf')))==1:
-        file_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]
+    if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
+        file_ch1=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cha*cdf'))[0]
         Data_ch1=xr.open_dataset(file_ch1).sortby('time')
         tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
         time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
