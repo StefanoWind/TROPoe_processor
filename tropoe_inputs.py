@@ -49,8 +49,6 @@ with open(source_config, 'r') as fid:
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-
-
 logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 logger = logging.getLogger()
 logger.info('Building TROPoe inputs for '+date+' at '+site)
@@ -169,13 +167,13 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
-        file_ch1=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
+        file_ch1=glob.glob(os.path.join(chassistdir,'*'+date+'*cdf'))[0]
         Data_ch1=xr.open_dataset(file_ch1).sortby('time')
         tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
         time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
         sky_ch1=Data_ch1['sceneMirrorAngle'].values==0
     
-        file_ch1_ncf=glob.glob(os.path.join(cd,'data',channel_irs,'nfc','*'+date+'*cdf'))[0]
+        file_ch1_ncf=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
         Data_ch1_nfc=xr.open_dataset(file_ch1_ncf).sortby('time')
         Data_ch1_nfc['mean_rad']=xr.where(Data_ch1_nfc['missingDataFlag']==0,Data_ch1_nfc['mean_rad'],np.nan)#mask mean_rad with missingDataFlag
 
