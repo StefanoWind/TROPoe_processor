@@ -13,3 +13,5 @@ __pycache__
 *.log
 trash/*
 *.dat
+*.sh
+*.out
