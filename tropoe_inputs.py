@@ -29,7 +29,6 @@ plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
-
 if len(sys.argv)==1:
     site='nwtc.z02'
     date='20220515'
@@ -55,6 +54,10 @@ logger.info('Building TROPoe inputs for '+date+' at '+site)
 
 #%% Main
 channel_irs=config['channel_irs'][site]
+n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*nc')))
+if n_files_irs==0:
+    logger.error('No ASSIST data found. Aborting.')
+    raise BaseException()
 
 #define temporary directory if not provided
 if len(sys.argv)==1:
@@ -76,13 +79,6 @@ with open(os.path.join(cd,'configs',f'vip_{site}.txt'), "r") as f:
 vip=vip.replace('{date}',date)
 with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
     f.write(vip)
-
-#download assist data
-time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
-              datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-if channel_irs !="":
-    n_files_irs=trp.download(channel_irs,time_range,config)
-    logger.info(str(n_files_irs)+' ASSIST files downloaded')
 
 #qc settings
 logger.info('Running PCA filter')
@@ -116,11 +112,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 channel_cbh=config['channel_cbh'][site]
 if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:
-        time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
-                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
-        n_files_cbh=trp.download(channel_cbh,time_range,config)
-        logger.info(str(n_files_cbh)+' CBH files downloaded')
-        
+        n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*nc')))
         if n_files_cbh==0:
             logger.error('No CBH data found. Aborting.')
             raise BaseException()
@@ -143,11 +135,8 @@ else:
 channel_met=config['channel_met'][site]
 if channel_met !="":
     if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
-        time_range = [datetime.strftime(datetime.strptime(date, '%Y%m%d'),'%Y%m%d%H%M%S'),
-                      datetime.strftime(datetime.strptime(date, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
-        n_files_met=trp.download(channel_met,time_range,config)
-        logger.info(str(n_files_met)+' met files downloaded')
         
+        n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date+'*nc')))
         if n_files_met==0:
             logger.error('No met data found. Aborting.')
             raise BaseException()

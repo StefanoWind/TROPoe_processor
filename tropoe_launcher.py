@@ -67,13 +67,6 @@ def process_day(date,config):
         #define temporary directories
         tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
         
-        #clear up space on docker
-        if image_type=='docker':
-            command='docker image prune -f'
-            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
-            logger.info(result.stdout)
-            logger.error(result.stderr)
-
         logger.info('Running TROPoe at '+site+' on '+date)
         print('Running TROPoe at '+site+' on '+date)
 
@@ -168,9 +161,18 @@ from doe_dap_dl import DAP
 a2e = DAP('a2e.energy.gov',confirm_downloads=False)
 a2e.setup_cert_auth(username=config['username'], password=config['password'])
 
+#clear up space on docker
+if config['image_type']=='docker':
+    command='docker image prune -f'
+    result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
+    print(result.stdout)
+    print(result.stderr)
+
 #change files permission
 command='chmod -R 777 '+cd
 result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+print(result.stdout)
+print(result.stderr)
 
 #create directories
 os.makedirs(os.path.join(cd,'data',config['channel_irs'][site]).replace('00','c0').replace('assist','assist.tropoe'),exist_ok=True)
@@ -182,7 +184,27 @@ current_date = datetime.strptime(sdate,'%Y%m%d')
 while current_date <= datetime.strptime(edate,'%Y%m%d'):
     days.append(current_date)
     current_date += timedelta(days=1)
+    
+#download all data
+if config['channel_irs'][site]!="":
+    time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
+                  datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+    n_files_irs=trp.download(config['channel_irs'][site],time_range,config)
+    print(str(n_files_irs)+' ASSIST files downloaded')
+    
+if config['channel_cbh'][site]!="":
+    time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
+                  datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
+    n_files_cbh=trp.download(config['channel_cbh'][site],time_range,config)
+    print(str(n_files_cbh)+' CBH files downloaded')
+    
+if config['channel_met'][site]!="":
+    time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
+                  datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
+    n_files_met=trp.download(config['channel_met'][site],time_range,config)
+    print(str(n_files_met)+' met files downloaded')
 
+#process
 if option=='serial':
     for d in days:
         date=datetime.strftime(d,'%Y%m%d')
