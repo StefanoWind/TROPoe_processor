@@ -336,3 +336,74 @@ def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=N
         Data.to_netcdf(f.replace('.cdf','_temp.cdf'))
         Data.close()
         os.replace(f.replace('.cdf','_temp.cdf'),f)
+        
+        
+def plot_temp_wvmr(Data,config,filename=''):
+    '''
+    Plot time-height maps of QC temperature and water vapor mixing ratio
+    '''
+    import numpy as np
+    from matplotlib import pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib.dates as mdates
+    from datetime import datetime
+    from datetime import timedelta
+    import os
+    
+    Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
+
+    
+    time=np.array(Data['time'])
+    date=str(Data.base_time.values)[:10].replace('-','')
+    height0=np.array(Data['height'][:])*1000
+    sel_z=height0<config['max_z']
+    height=height0[sel_z]
+
+    T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[C]
+    r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[g/Kg]
+    cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:])*1000#[m]
+    lwp=np.array(Data['lwp'][:])
+    cbh_sel=cbh.copy()
+    cbh_sel[lwp<config['min_lwp']]=np.nan
+    
+    plt.close('all')
+    fig=plt.figure(figsize=(18,10))
+    ax=plt.subplot(2,1,1)
+    CS=plt.contourf(time,height,T.T,np.round(np.arange(np.nanpercentile(T, 5),np.nanpercentile(T, 95),1)),cmap='hot',extend='both')
+    plt.ylim([0,config['max_z']])
+    plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
+    if np.sum(~np.isnan(cbh_sel))>0:
+        plt.legend()
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size = '2%', pad=0.65)
+    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
+   
+    cb.set_label(r'Temperature [$^\circ$C]')
+    ax.set_xlabel('Time (UTC)')
+    ax.set_ylabel(r'$z$ [m.a.g.l.]')
+    ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+    ax.set_ylim(0, np.max(height)+10)
+    ax.grid()
+    ax.tick_params(axis='both', which='major')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+date+'\n File: '+os.path.basename(filename), x=0.45)
+    ax.set_facecolor((0.9,0.9,0.9))
+    
+    ax=plt.subplot(2,1,2)
+    CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
+    plt.ylim([0,config['max_z']])
+    plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
+    if np.sum(~np.isnan(cbh_sel))>0:
+        plt.legend()
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size = '2%', pad=0.65)
+    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
+    cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
+    ax.set_xlabel('Time (UTC)')
+    ax.set_ylabel(r'$z$ [m.a.g.l.]')
+    ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+    ax.set_ylim(0, np.max(height)+10)
+    ax.grid()
+    ax.tick_params(axis='both', which='major')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_facecolor((0.9,0.9,0.9))

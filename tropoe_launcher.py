@@ -5,80 +5,70 @@ Run TROPoe retrieval and store results
 import os
 cd=os.getcwd()
 import sys
+sys.path.append(os.path.join(cd,'utils')) 
+import tropoe_utils as trp
 import numpy as np
 from matplotlib import pyplot as plt
 from datetime import datetime
 from datetime import timedelta
+from multiprocessing import Pool
 import xarray as xr
 import subprocess
 import shutil
 import yaml
 import glob as glob
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.dates as mdates
 
 plt.close('all')
 
 #%% Inputs
-source_config=os.path.join(cd,'configs/config_basic.yaml')
+
 
 if len(sys.argv)==1:
     site='nwtc.z02'
     sdate='20220515'
-    edate='20220516'
+    edate='20220520'
+    option='parallel'
+    source_config=os.path.join(cd,'configs/config_basic.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
     edate=sys.argv[3]
+    option=sys.argv[4]
+    source_config=sys.argv[5]
     
-#%% Initialization
-
-#inputs
-with open(source_config, 'r') as fid:
-    config = yaml.safe_load(fid)
-channel_irs=config['channel_irs'][site]
-channel_cbh=config['channel_cbh'][site]
-channel_met=config['channel_met'][site]
-site_prior=config['site_prior'][site]
-verbosity=config['verbosity']
-image_name=config['image_name']
-image_type=config['image_type']
-
-#imports
-sys.path.append(config['path_utils']) 
-import utils as utl
-
-#processed list
-if os.path.exists(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))):
-    with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))) as fid:
-        processed=fid.readlines()
-    processed=[p.strip() for p in processed]
-else: 
-    processed=[]
-
-#create directories
-os.makedirs(os.path.join(cd,'data',channel_irs).replace('00','c0').replace('assist','assist.tropoe'),exist_ok=True)
-os.makedirs(os.path.join('log',site),exist_ok=True)
-
-# Loop to generate the range of datetimes
-days=[]
-current_date = datetime.strptime(sdate,'%Y%m%d')
-while current_date <= datetime.strptime(edate,'%Y%m%d'):
-    days.append(current_date)
-    current_date += timedelta(days=1)
+#%% Fuctions
+def process_day(date,config):
     
-#%% Main
-for d in days:
-    date=datetime.strftime(d,'%Y%m%d')
-    month=datetime.strftime(d,'%m')
+    '''
+    Run TROPoe for specific day. Downloads and reformats IRS and auxiliary data.
+    '''
+    
+    #extract config
+    channel_irs=config['channel_irs'][site]
+    channel_cbh=config['channel_cbh'][site]
+    channel_met=config['channel_met'][site]
+    site_prior=config['site_prior'][site]
+    verbosity=config['verbosity']
+    image_name=config['image_name']
+    image_type=config['image_type']
+    
+    #check list of processed files
+    if os.path.exists(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))):
+        with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))) as fid:
+            processed=fid.readlines()
+        processed=[p.strip() for p in processed]
+    else: 
+        processed=[]
+
     if sum([date == p for p in processed])==0:
 
+        #create daily logger
         logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
         
         #define temporary directories
         tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
         
-        #clear up space
+        #clear up space on docker
         if image_type=='docker':
             command='docker image prune -f'
             result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
@@ -94,13 +84,14 @@ for d in days:
         logger.info(result.stdout)
         logger.error(result.stderr)
         
+        #check input files
         if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0 and channel_cbh !="":
             logger.error('No CBH inputs found. Skipping.')
-            continue
+            return 
         
         if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0 and channel_met !="":
             logger.error('No met inputs found. Skipping.')
-            continue
+            return
         
         if len(glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf')))==1:
             f_ch1=glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf'))[0]
@@ -117,17 +108,15 @@ for d in days:
             if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
                 logger.error('Inconsistent time on '+date+'. Skipping.')
                 utl.close_logger(logger, handler)
-                continue
+                return
         else:
             logger.error('Missing or multiple files found on '+date+'. Skipping.')
             utl.close_logger(logger, handler)
-            continue
+            return
         
         #run TROPoe
-        command='chmod -R 777 '+cd
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-        
         vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+        month=datetime.strftime(d,'%m')
         prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
         command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')
@@ -135,7 +124,7 @@ for d in days:
         logger.info(result.stdout)
         logger.error(result.stderr)
         
-        #% plots
+        #post-processing
         if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
             
             #add to processed list
@@ -148,68 +137,55 @@ for d in days:
                 
             file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
             
+            #close logger
             logger.info('Succesfully created retrieval '+file_tropoe)
-        
-            Data=xr.open_dataset(file_tropoe)
-            Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
-    
-            time=np.array(Data['time'])
-            height0=np.array(Data['height'][:])*1000
-            sel_z=height0<config['max_z']
-            height=height0[sel_z]
-    
-            T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[C]
-            r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[g/Kg]
-            cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:])*1000#[m]
-            lwp=np.array(Data['lwp'][:])
-            cbh_sel=cbh.copy()
-            cbh_sel[lwp<config['min_lwp']]=np.nan
-            
-            plt.close('all')
-            fig=plt.figure(figsize=(18,10))
-            ax=plt.subplot(2,1,1)
-            CS=plt.contourf(time,height,T.T,np.round(np.arange(np.nanpercentile(T, 5),np.nanpercentile(T, 95),1)),cmap='hot',extend='both')
-            plt.ylim([0,config['max_z']])
-            plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
-            if np.sum(~np.isnan(cbh_sel))>0:
-                plt.legend()
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size = '2%', pad=0.65)
-            cb = fig.colorbar(CS, cax=cax, orientation='vertical')
-           
-            cb.set_label(r'Temperature [$^\circ$C]')
-            ax.set_xlabel('Time (UTC)')
-            ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
-            ax.set_ylim(0, np.max(height)+10)
-            ax.grid()
-            ax.tick_params(axis='both', which='major')
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+utl.datestr(utl.dt64_to_num(time[0]),'%Y%m%d')+'\n File: '+os.path.basename(file_tropoe), x=0.45)
-            ax.set_facecolor((0.9,0.9,0.9))
-            
-            ax=plt.subplot(2,1,2)
-            CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
-            plt.ylim([0,config['max_z']])
-            plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
-            if np.sum(~np.isnan(cbh_sel))>0:
-                plt.legend()
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size = '2%', pad=0.65)
-            cb = fig.colorbar(CS, cax=cax, orientation='vertical')
-            cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
-            ax.set_xlabel('Time (UTC)')
-            ax.set_ylabel(r'$z$ [m.a.g.l.]')
-            ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
-            ax.set_ylim(0, np.max(height)+10)
-            ax.grid()
-            ax.tick_params(axis='both', which='major')
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_facecolor((0.9,0.9,0.9))
-            
-            plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
             utl.close_logger(logger, handler)
-    
+            
+            #plot maps
+            Data=xr.open_dataset(file_tropoe)
+            trp.plot_temp_wvmr(Data,config,file_tropoe)
+            plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
+            plt.close()
+            
         else:
             logger.info('Skipping '+f_ch1)
             utl.close_logger(logger, handler)
+            return
+    
+#%% Initialization
+
+#inputs
+with open(source_config, 'r') as fid:
+    config = yaml.safe_load(fid)
+#imports
+sys.path.append(config['path_utils']) 
+import utils as utl
+
+#change files permission
+command='chmod -R 777 '+cd
+result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+
+#create directories
+os.makedirs(os.path.join(cd,'data',config['channel_irs'][site]).replace('00','c0').replace('assist','assist.tropoe'),exist_ok=True)
+os.makedirs(os.path.join('log',site),exist_ok=True)
+
+# Loop to generate the range of datetimes
+days=[]
+current_date = datetime.strptime(sdate,'%Y%m%d')
+while current_date <= datetime.strptime(edate,'%Y%m%d'):
+    days.append(current_date)
+    current_date += timedelta(days=1)
+
+if option=='serial':
+    for d in days:
+        date=datetime.strftime(d,'%Y%m%d')
+        process_day(date,config)
+elif option=='parallel':
+    args = [(datetime.strftime(days[i],'%Y%m%d'), config) for i in range(len(days))]
+ 
+    # Use multiprocessing Pool to parallelize the task
+    with Pool() as pool:
+        pool.starmap(process_day, args)
+else:
+    raise ValueError(f'Input "option" should be either serial or parallel, not {option}')
+        

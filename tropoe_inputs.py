@@ -167,7 +167,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
-        file_ch1=glob.glob(os.path.join(chassistdir,'*'+date+'*cdf'))[0]
+        file_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]
         Data_ch1=xr.open_dataset(file_ch1).sortby('time')
         tnum_ch1=Data_ch1.time.values+Data_ch1.base_time.values/10**3
         time_ch1=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1])
