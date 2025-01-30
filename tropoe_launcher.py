@@ -78,7 +78,7 @@ def process_day(date,config):
         
         #check input files
         if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0 and channel_cbh !="":
-            logger.error('No CBH inputs found. Skipping.')
+            logger.error('No cbh inputs found. Skipping.')
             return 
         
         if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0 and channel_met !="":
@@ -96,6 +96,7 @@ def process_day(date,config):
             
             Data_sum=xr.open_dataset(f_sum)
             time_sum=np.sort((Data_sum['time'].values+Data_sum['base_time'].values)/np.timedelta64(1,'s'))
+            del(Data_sum)
             
             if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
                 logger.error('Inconsistent time on '+date+'. Skipping.')
@@ -154,13 +155,6 @@ with open(source_config, 'r') as fid:
 sys.path.append(config['path_utils']) 
 import utils as utl
 
-#WDH setup
-sys.path.append(config['path_dap_py']) 
-from doe_dap_dl import DAP
-
-a2e = DAP('a2e.energy.gov',confirm_downloads=False)
-a2e.setup_cert_auth(username=config['username'], password=config['password'])
-
 #clear up space on docker
 if config['image_type']=='docker':
     command='docker image prune -f'
@@ -196,7 +190,7 @@ if config['channel_cbh'][site]!="":
     time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
     n_files_cbh=trp.download(config['channel_cbh'][site],time_range,config)
-    print(str(n_files_cbh)+' CBH files downloaded')
+    print(str(n_files_cbh)+' cbh files downloaded')
     
 if config['channel_met'][site]!="":
     time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
@@ -216,5 +210,5 @@ elif option=='parallel':
     with Pool() as pool:
         pool.starmap(process_day, args)
 else:
-    raise ValueError(f'Input "option" should be either serial or parallel, not {option}')
+    raise ValueError(f'Input "option" should be either "serial" or "parallel", not {option}')
         

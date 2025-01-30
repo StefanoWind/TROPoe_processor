@@ -69,6 +69,7 @@ if os.path.exists(tmpdir):
     
 os.makedirs(tmpdir,exist_ok=True)
 
+#define directories
 chassistdir=os.path.join(tmpdir,'ch1')
 sumassistdir=os.path.join(tmpdir,'sum')
 nfchassistdir=os.path.join(tmpdir,'nfc')
@@ -88,7 +89,7 @@ edate=date
 #pre-conditioning
 trp.copy_rename_assist(channel_irs,sdate,edate,chassistdir,sumassistdir)
 if config['apply_prefilter']:
-    trp.pre_filter(files=glob.glob(chassistdir+'/*cdf'),logger=logger)
+    trp.pre_filter(files=glob.glob(os.path.join(chassistdir,'cdf')),logger=logger)
     
 #pca filter
 command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
@@ -111,31 +112,30 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 #get cbh data
 channel_cbh=config['channel_cbh'][site]
 if channel_cbh !="":
-    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:
+    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
         n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*nc')))
         if n_files_cbh==0:
-            logger.error('No CBH data found. Aborting.')
+            logger.error('No cbh data found. Aborting.')
             raise BaseException()
             
         if 'lidar' in channel_cbh:
-                logger.info('Running CBH retrieval from lidar data')
+                logger.info('Running cbh retrieval from lidar data')
                 Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
             
         elif 'ceil' in channel_cbh:
-            logger.info('Extracting CBH from ceilometer data')
+            logger.info('Extracting cbh from ceilometer data')
             trp.extract_cbh_ceil(channel_cbh,date,config,logger)
             
     else:
-        logger.info('CBH data already available, skipping.')
+        logger.info('cbh data already available, skipping.')
         
 else:
-    logger.info('No CBH channel provided.')
+    logger.info('No cbh channel provided.')
         
 #get met data
 channel_met=config['channel_met'][site]
 if channel_met !="":
-    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:
-        
+    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:#check if met file exists
         n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date+'*nc')))
         if n_files_met==0:
             logger.error('No met data found. Aborting.')
