@@ -65,7 +65,11 @@ def download(channel,time_range,config):
     
     files=a2e.search(_filter)
     a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
-    return len(files)
+    
+    if files==[]:
+        return 0
+    else:
+        return len(files)
 
 def copy_rename_assist(channel,sdate, edate,chassistdir,sumassistdir):
     import os
