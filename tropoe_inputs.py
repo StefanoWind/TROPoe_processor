@@ -165,6 +165,11 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
     plt.figure(figsize=(18,10))
     date_fmt = mdates.DateFormatter('%H:%M')
     
+    if channel_met =="":
+        nplots=2
+    else:
+        nplots=5
+    
     #plot radiance at 675 cm^-1
     if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
         file_ch1=glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf'))[0]
@@ -181,7 +186,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         time_ch1_nfc=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nfc])
         sky_ch1_nfc=Data_ch1_nfc['sceneMirrorAngle'].values==0
         
-        plt.subplot(5,1,1)
+        plt.subplot(nplots,1,1)
         plt.plot(time_ch1[sky_ch1],Data_ch1['mean_rad'].interp(wnum=675).values[sky_ch1],'r',label='Raw')
         plt.plot(time_ch1_nfc[sky_ch1_nfc],Data_ch1_nfc['mean_rad'].interp(wnum=675).values[sky_ch1_nfc],'g',label='Filtered')
         plt.ylabel('Mean radiance\n'+r'at 675 cm$^{-1}$ [r.u.]')
@@ -199,7 +204,7 @@ if os.path.exists(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cdf'))
         tnum_cbh=Data_cbh.time.values+Data_cbh.base_time.values
         time_cbh=np.array([datetime.utcfromtimestamp(t) for t in tnum_cbh])
         real=Data_cbh.first_cbh>0
-        plt.subplot(5,1,2)
+        plt.subplot(nplots,1,2)
         plt.plot(time_cbh[real],Data_cbh.first_cbh.values[real],'.b')
         plt.ylabel('CBH [m]')
         plt.xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])

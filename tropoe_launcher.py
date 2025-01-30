@@ -22,11 +22,10 @@ plt.close('all')
 
 #%% Inputs
 
-
 if len(sys.argv)==1:
     site='nwtc.z02'
-    sdate='20220515'
-    edate='20220520'
+    sdate='20220510'
+    edate='20220515'
     option='parallel'
     source_config=os.path.join(cd,'configs/config_basic.yaml')
 else:
@@ -34,7 +33,7 @@ else:
     sdate=sys.argv[2]
     edate=sys.argv[3]
     option=sys.argv[4]
-    source_config=sys.argv[5]
+    source_config=os.path.join(cd,'configs',sys.argv[5])
     
 #%% Fuctions
 def process_day(date,config):
@@ -116,7 +115,7 @@ def process_day(date,config):
         
         #run TROPoe
         vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        month=datetime.strftime(d,'%m')
+        month=datetime.strftime(date,'%m')
         prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
         command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')
