@@ -156,9 +156,17 @@ def process_day(date,config):
 #inputs
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
+    
 #imports
 sys.path.append(config['path_utils']) 
 import utils as utl
+
+#WDH setup
+sys.path.append(config['path_dap_py']) 
+from doe_dap_dl import DAP
+
+a2e = DAP('a2e.energy.gov',confirm_downloads=False)
+a2e.setup_cert_auth(username=config['username'], password=config['password'])
 
 #change files permission
 command='chmod -R 777 '+cd
