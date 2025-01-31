@@ -30,10 +30,11 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='nwtc.z02'
-    date='20220515'
+    site='nwtc.z01'
+    date='20220503'
     source_config=os.path.join(cd,'configs/config_basic.yaml')
-    
+    os.makedirs(os.path.join('log',site),exist_ok=True)
+
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -57,8 +58,7 @@ channel_irs=config['channel_irs'][site]
 n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
 if n_files_irs==0:
     logger.error('No ASSIST data found. Aborting.')
-    raise BaseException()
-
+    
 #define temporary directory if not provided
 if len(sys.argv)==1:
     tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
@@ -88,8 +88,14 @@ edate=date
 
 #pre-conditioning
 trp.copy_rename_assist(channel_irs,sdate,edate,chassistdir,sumassistdir)
-if config['apply_prefilter']:
-    trp.pre_filter(files=glob.glob(os.path.join(chassistdir,'cdf')),logger=logger)
+if config['apply_prefilter'][site]:
+    trp.pre_filter(files=glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
+
+if config['override_hatch'][site]:
+    trp.overrride_hatch_flag(glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
+    trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
+    
+raise BaseException()
     
 #pca filter
 command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'

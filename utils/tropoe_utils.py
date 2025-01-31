@@ -340,7 +340,71 @@ def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=N
         Data.to_netcdf(f.replace('.cdf','_temp.cdf'))
         Data.close()
         os.replace(f.replace('.cdf','_temp.cdf'),f)
+   
+def brightness_temp(rad,wnum):
+    import numpy as np
+    k=1.380649*10**-23#[J/Kg] Boltzman's constant
+    h=6.62607015*10**-34#[J s] Plank's constant
+    c=299792458.0#[m/s] speed of light
+
+    Tb=100*h*c*wnum/k/np.log(2*10**11*c**2*h*wnum**3/rad+1)-273.15
+    
+    return Tb
+def overrride_hatch_flag(files,thresh=1,replace_flag=[-1],logger=None):
+    '''
+    Override hatch flag and replace with proxy using difference of Tb at two wnums
+    
+    Inputs:
+        files_sum: [list] summary files to process
+        thresh: [K] maximum difference in brightness temperature between 990 and 680 cm^-1
+        replace_flag: [list] flags to be replaces
+    '''
+    import numpy as np
+    import xarray as xr
+    import os
+
+    for f in files:
+        with xr.open_dataset(f) as Data0:
+            Data = Data0.sortby('time').load()  
+    
+        #data extraction
+        hatch=Data.hatchOpen
+       
+        if 'summary' in f:
+            T1=Data.mean_Tb_985_990.where(np.abs(Data.sceneMirrorAngle)<0.1)
+            T2=Data.mean_Tb_675_680.where(np.abs(Data.sceneMirrorAngle)<0.1)
+        elif 'cha' in f:
+            Tb=brightness_temp(Data.mean_rad,Data.wnum)
+            T1=Tb.where(np.abs(Data.sceneMirrorAngle)<0.1).sel(wnum=slice(985,990)).mean(dim='wnum')
+            T2=Tb.where(np.abs(Data.sceneMirrorAngle)<0.1).sel(wnum=slice(675,680)).mean(dim='wnum')
+            
+        #new hatch flag
+        replace_open=np.abs(T1-T2)>thresh
+        replace_closed=np.abs(T1-T2)<=thresh
         
+        #select flags to be replaced
+        sel=np.array([False]*len(hatch))
+        for h in replace_flag:
+            sel+=hatch==h
+        
+        #ovverride hatch flag
+        new_hatch=hatch.where(np.abs(Data.sceneMirrorAngle)<0.1)
+        new_hatch[sel*replace_open]=1
+        new_hatch[sel*replace_closed]=0
+        
+        #add undefined flag when moving
+        new_hatch=new_hatch.interpolate_na(dim='time')
+        new_hatch[np.isnan(new_hatch)+(new_hatch>0)*(new_hatch<1)+(new_hatch>-1)*(new_hatch<0)]=-1
+        
+        #save new hatch flag in summary file
+        Data['hatchOpen']=new_hatch
+        
+        logger.info(f'{np.sum((sel*replace_open).values)} hatch flag overridden with status "open".')
+        logger.info(f'{np.sum((sel*replace_closed).values)} hatch flag overridden with status "closed".')
+        
+        Data.to_netcdf(f.replace('.cdf','_temp.cdf'))
+        Data.close()
+        os.replace(f.replace('.cdf','_temp.cdf'),f)
         
 def plot_temp_wvmr(Data,config,filename=''):
     '''
