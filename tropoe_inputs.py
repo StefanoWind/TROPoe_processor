@@ -95,8 +95,6 @@ if config['override_hatch'][site]:
     trp.overrride_hatch_flag(glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
     trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
     
-raise BaseException()
-    
 #pca filter
 command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
 result = subprocess.run(command, shell=True, text=True,capture_output=True)
