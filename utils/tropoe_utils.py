@@ -136,7 +136,7 @@ def compute_cbh_halo(channel,date,config,logger):
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
     
-    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
         logger.error('Unallowable data gap found in CBH data. Aborting.')
         raise BaseException()
 
@@ -240,7 +240,7 @@ def exctract_met(channel,date,site,config,logger):
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
     
-    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_met']==False:
         logger.error('Unallowable data gap found in met data. Aborting.')
         raise BaseException()
 
@@ -291,7 +291,7 @@ def extract_cbh_ceil(channel,date,config,logger):
     basetime=utl.floor(tnum[0],24*3600)
     time_offset=tnum-basetime
     
-    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap']:
+    if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
         logger.error('Unallowable data gap found in CBH data. Aborting.')
         raise BaseException()
 
@@ -406,7 +406,7 @@ def overrride_hatch_flag(files,thresh=1,replace_flag=[-1],logger=None):
         Data.close()
         os.replace(f.replace('.cdf','_temp.cdf'),f)
         
-def plot_temp_wvmr(Data,config,filename=''):
+def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     '''
     Plot time-height maps of QC temperature and water vapor mixing ratio
     '''
@@ -456,6 +456,10 @@ def plot_temp_wvmr(Data,config,filename=''):
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+date+'\n File: '+os.path.basename(filename), x=0.45)
     ax.set_facecolor((0.9,0.9,0.9))
+    if no_cbh:
+        plt.text(time[1],config['max_z']-100,'No CBH',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+    if no_met:
+        plt.text(time[1],config['max_z']-300,'No met',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
     
     ax=plt.subplot(2,1,2)
     CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')

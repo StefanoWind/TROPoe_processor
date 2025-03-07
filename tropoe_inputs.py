@@ -88,10 +88,10 @@ edate=date
 
 #pre-conditioning
 trp.copy_rename_assist(channel_irs,sdate,edate,chassistdir,sumassistdir)
-if config['apply_prefilter'][site]:
+if config['apply_prefilter']:
     trp.pre_filter(files=glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
 
-if config['override_hatch'][site]:
+if config['override_hatch']:
     trp.overrride_hatch_flag(glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
     trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
     
@@ -119,16 +119,17 @@ if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
         n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*nc')))
         if n_files_cbh==0:
-            logger.error('No cbh data found. Aborting.')
-            raise BaseException()
-            
-        if 'lidar' in channel_cbh:
-                logger.info('Running cbh retrieval from lidar data')
-                Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
-            
-        elif 'ceil' in channel_cbh:
-            logger.info('Extracting cbh from ceilometer data')
-            trp.extract_cbh_ceil(channel_cbh,date,config,logger)
+            logger.error('No cbh data found.')
+            if config['allow_no_cbh']==False:
+                raise BaseException()
+            else:
+                if 'lidar' in channel_cbh:
+                        logger.info('Running cbh retrieval from lidar data')
+                        Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+                    
+                elif 'ceil' in channel_cbh:
+                    logger.info('Extracting cbh from ceilometer data')
+                    trp.extract_cbh_ceil(channel_cbh,date,config,logger)
             
     else:
         logger.info('cbh data already available, skipping.')
@@ -142,12 +143,12 @@ if channel_met !="":
     if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:#check if met file exists
         n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date+'*nc')))
         if n_files_met==0:
-            logger.error('No met data found. Aborting.')
-            raise BaseException()
-            
-        logger.info('Extracting met data')
-        Data_met=trp.exctract_met(channel_met,date,site,config,logger)
-        
+            logger.error('No met data found.')
+            if config['allow_no_met']==False:
+                raise BaseException()
+        else:
+            logger.info('Extracting met data')
+            Data_met=trp.exctract_met(channel_met,date,site,config,logger)
     else:
         logger.info('Met data already available, skipping.')
 else:

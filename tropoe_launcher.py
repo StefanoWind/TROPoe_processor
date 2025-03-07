@@ -23,11 +23,11 @@ plt.close('all')
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='nwtc.z02'
-    sdate='20220510'
-    edate='20220515'
-    option='parallel'
-    source_config=os.path.join(cd,'configs/config_basic.yaml')
+    site='barg'
+    sdate='20240909'
+    edate='20240909'
+    option='serial'
+    source_config=os.path.join(cd,'configs/config_prefilt_lax.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -78,12 +78,20 @@ def process_day(date,config):
         
         #check input files
         if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0 and channel_cbh !="":
-            logger.error('No cbh inputs found. Skipping.')
-            return 
+            logger.error('No cbh inputs found.')
+            no_cbh=True
+            if config['allow_no_cbh']==False:
+                return 
+        else:
+            no_cbh=False
         
         if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0 and channel_met !="":
-            logger.error('No met inputs found. Skipping.')
-            return
+            logger.error('No met inputs found.')
+            no_met=True
+            if config['allow_no_met']==False:
+                return
+        else:
+            no_met=False
         
         if len(glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf')))==1:
             f_ch1=glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf'))[0]
@@ -136,7 +144,7 @@ def process_day(date,config):
             
             #plot maps
             Data=xr.open_dataset(file_tropoe)
-            trp.plot_temp_wvmr(Data,config,file_tropoe)
+            trp.plot_temp_wvmr(Data,config,file_tropoe,no_cbh,no_met)
             plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
             plt.close()
             
