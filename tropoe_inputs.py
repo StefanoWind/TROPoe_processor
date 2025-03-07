@@ -58,6 +58,7 @@ channel_irs=config['channel_irs'][site]
 n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
 if n_files_irs==0:
     logger.error('No ASSIST data found. Aborting.')
+    raise BaseException()
     
 #define temporary directory if not provided
 if len(sys.argv)==1:
@@ -122,14 +123,14 @@ if channel_cbh !="":
             logger.error('No cbh data found.')
             if config['allow_no_cbh']==False:
                 raise BaseException()
-            else:
-                if 'lidar' in channel_cbh:
-                        logger.info('Running cbh retrieval from lidar data')
-                        Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
-                    
-                elif 'ceil' in channel_cbh:
-                    logger.info('Extracting cbh from ceilometer data')
-                    trp.extract_cbh_ceil(channel_cbh,date,config,logger)
+        else:
+            if 'lidar' in channel_cbh:
+                    logger.info('Running cbh retrieval from lidar data')
+                    Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+                
+            elif 'ceil' in channel_cbh:
+                logger.info('Extracting cbh from ceilometer data')
+                trp.extract_cbh_ceil(channel_cbh,date,config,logger)
             
     else:
         logger.info('cbh data already available, skipping.')

@@ -2,7 +2,7 @@
 Auxiliary modules for TROPoe
 """
 
-def download(channel,time_range,config):
+def download(channel,time_range,ext1,config):
     import sys
     import os
     cd=os.getcwd()
@@ -31,7 +31,7 @@ def download(channel,time_range,config):
                         'between': time_range
                     },
                     'file_type': 'nc',
-                    'ext1':['user1'],
+                    'ext1':ext1,
                 }
     
     elif 'ceil' in channel:
@@ -224,7 +224,7 @@ def exctract_met(channel,date,site,config,logger):
                     press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
                     rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
             
-        #rund this if using the a0 met data
+        #runs this if using the a0 met data
         else:
             for f in files:
                 try:

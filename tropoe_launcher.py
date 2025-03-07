@@ -27,7 +27,7 @@ if len(sys.argv)==1:
     sdate='20240909'
     edate='20240909'
     option='serial'
-    source_config=os.path.join(cd,'configs/config_prefilt_lax.yaml')
+    source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -191,19 +191,19 @@ while current_date <= datetime.strptime(edate,'%Y%m%d'):
 if config['channel_irs'][site]!="":
     time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
-    n_files_irs=trp.download(config['channel_irs'][site],time_range,config)
+    n_files_irs=trp.download(config['channel_irs'][site],time_range,'',config)
     print(str(n_files_irs)+' ASSIST files downloaded')
     
 if config['channel_cbh'][site]!="":
     time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
-    n_files_cbh=trp.download(config['channel_cbh'][site],time_range,config)
+    n_files_cbh=trp.download(config['channel_cbh'][site].split('*')[0],time_range,config['channel_cbh'][site].split('*')[1],config)
     print(str(n_files_cbh)+' cbh files downloaded')
     
 if config['channel_met'][site]!="":
     time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
-    n_files_met=trp.download(config['channel_met'][site],time_range,config)
+    n_files_met=trp.download(config['channel_met'][site],time_range,'',config)
     print(str(n_files_met)+' met files downloaded')
 
 #process
