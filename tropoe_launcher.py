@@ -24,8 +24,8 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='barg'
-    sdate='20240909'
-    edate='20240909'
+    sdate='20240720'
+    edate='20240720'
     option='serial'
     source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
 else:
@@ -126,7 +126,7 @@ def process_day(date,config):
         logger.error(result.stderr)
         
         #post-processing
-        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
+        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
             
             #add to processed list
             with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
@@ -136,7 +136,7 @@ def process_day(date,config):
             if os.path.exists(tmpdir):
                 shutil.rmtree(tmpdir)
                 
-            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00','c0').replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
+            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
             
             #close logger
             logger.info('Succesfully created retrieval '+file_tropoe)
@@ -177,7 +177,7 @@ print(result.stdout)
 print(result.stderr)
 
 #create directories
-os.makedirs(os.path.join(cd,'data',config['channel_irs'][site]).replace('00','c0').replace('assist','assist.tropoe'),exist_ok=True)
+os.makedirs(os.path.join(cd,'data',config['channel_irs'][site]).replace('00',config['data_level_output']).replace('assist','assist.tropoe'),exist_ok=True)
 os.makedirs(os.path.join('log',site),exist_ok=True)
 
 # Loop to generate the range of datetimes

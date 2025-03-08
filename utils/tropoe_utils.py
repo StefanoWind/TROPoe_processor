@@ -182,24 +182,25 @@ def exctract_met(channel,date,site,config,logger):
         for f in files:
             try:
                 Data=pd.read_csv(f)
+                
+                Data.iloc[Data.iloc[:,5].values>=60,5]=59.99
+                for i in range(len(Data.index)):
+                    tstr_met='{i:04d}'.format(i=Data.iloc[i,0])+'-'+\
+                         '{i:02d}'.format(i=Data.iloc[i,1])+'-'+\
+                         '{i:02d}'.format(i=Data.iloc[i,2])+' '+\
+                         '{i:02d}'.format(i=Data.iloc[i,3])+':'+\
+                         '{i:02d}'.format(i=Data.iloc[i,4])+':'+\
+                         '{i:05.2f}'.format(i=Data.iloc[i,5])
+                         
+                    tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y-%m-%d %H:%M:%S.%f'))
+                
+                temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
+                press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
+                rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
+                
             except:
                 logger.error(f+' failed to load')
                 
-            Data.iloc[Data.iloc[:,5].values>=60,5]=59.99
-            for i in range(len(Data.index)):
-                tstr_met='{i:04d}'.format(i=Data.iloc[i,0])+'-'+\
-                     '{i:02d}'.format(i=Data.iloc[i,1])+'-'+\
-                     '{i:02d}'.format(i=Data.iloc[i,2])+' '+\
-                     '{i:02d}'.format(i=Data.iloc[i,3])+':'+\
-                     '{i:02d}'.format(i=Data.iloc[i,4])+':'+\
-                     '{i:05.2f}'.format(i=Data.iloc[i,5])
-                     
-                tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y-%m-%d %H:%M:%S.%f'))
-            
-            temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
-            press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
-            rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
-
     elif site=='barg':
         
         #run this if using the raw met data
@@ -208,9 +209,7 @@ def exctract_met(channel,date,site,config,logger):
             for f in files:
                 try:
                     Data=pd.read_csv(f, delimiter=r'\s+|,', engine='python',header=None)
-                except:
-                    logger.error(f+' failed to load')
-                
+                    
                     #remove invalid rows
                     len_date=np.array([len(d) if d is not None else 0 for d in Data.iloc[:,0]])
                     len_time=np.array([len(t) if t is not None else 0 for t in Data.iloc[:,1]])
@@ -223,20 +222,21 @@ def exctract_met(channel,date,site,config,logger):
                     temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
                     press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
                     rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
-            
+                except:
+                    logger.error(f+' failed to load')
+                
         #runs this if using the a0 met data
         else:
             for f in files:
                 try:
                     Data=xr.open_dataset(f, decode_times=False)
-                except:
-                    logger.error(f+' failed to load')
-                
                     tnum_all=np.append(tnum_all,(Data.time.values-719529)*60*60*24)#Matlab time ot UNIX timestamp
                     temp_all=np.append(temp_all,Data['air_temp_c'].sel(air_temp_sensors=0).values)
                     press_all=np.append(press_all,Data['air_press_mb'].sel(num_air_press=0).values)
                     rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values) 
-        
+                except:
+                    logger.error(f+' failed to load')
+                
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
     

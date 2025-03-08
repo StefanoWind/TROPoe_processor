@@ -115,7 +115,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
     Data_ch1.close()
 
 #get cbh data
-channel_cbh=config['channel_cbh'][site]
+channel_cbh=config['channel_cbh'][site].split('*')[0]
 if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
         n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*nc')))
