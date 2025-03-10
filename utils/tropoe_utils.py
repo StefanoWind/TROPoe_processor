@@ -147,7 +147,7 @@ def compute_cbh_halo(channel,date,config,logger):
 
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    name_save=channel.split('/')[1][:-1]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
+    name_save=channel.split('/')[1][:-2]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
 
     return Output
@@ -442,11 +442,6 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
     if np.sum(~np.isnan(cbh_sel))>0:
         plt.legend()
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size = '2%', pad=0.65)
-    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
-   
-    cb.set_label(r'Temperature [$^\circ$C]')
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
@@ -456,10 +451,16 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+date+'\n File: '+os.path.basename(filename), x=0.45)
     ax.set_facecolor((0.9,0.9,0.9))
+    
     if no_cbh:
-        plt.text(time[1],config['max_z']-100,'No CBH',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+        plt.text(time[1],config['max_z']-300,'No CBH',weight='bold',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
     if no_met:
-        plt.text(time[1],config['max_z']-300,'No met',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+        plt.text(time[1],config['max_z']-500,'No met',weight='bold',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+        
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size = '2%', pad=0.65)
+    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
+    cb.set_label(r'Temperature [$^\circ$C]')
     
     ax=plt.subplot(2,1,2)
     CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
@@ -467,10 +468,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
     if np.sum(~np.isnan(cbh_sel))>0:
         plt.legend()
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size = '2%', pad=0.65)
-    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
-    cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
+   
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
@@ -479,3 +477,13 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax.tick_params(axis='both', which='major')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax.set_facecolor((0.9,0.9,0.9))
+    
+    if no_cbh:
+        plt.text(time[1],config['max_z']-300,'No CBH',weight='bold',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+    if no_met:
+        plt.text(time[1],config['max_z']-500,'No met',weight='bold',bbox={'facecolor':'w','alpha':0.5,'edgecolor':'k'})
+        
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size = '2%', pad=0.65)
+    cb = fig.colorbar(CS, cax=cax, orientation='vertical')
+    cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')

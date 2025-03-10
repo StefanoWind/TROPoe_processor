@@ -24,8 +24,8 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='barg'
-    sdate='20240720'
-    edate='20240720'
+    sdate='20240721'
+    edate='20240721'
     option='serial'
     source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
 else:
@@ -44,7 +44,7 @@ def process_day(date,config):
     
     #extract config
     channel_irs=config['channel_irs'][site]
-    channel_cbh=config['channel_cbh'][site]
+    channel_cbh=config['channel_cbh'][site].split('*')[0]
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
     verbosity=config['verbosity']
