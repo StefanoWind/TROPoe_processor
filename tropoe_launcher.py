@@ -77,7 +77,7 @@ def process_day(date,config):
         logger.error(result.stderr)
         
         #check input files
-        if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace('a0','cbh'),'*'+date+'*')))==0 and channel_cbh !="":
+        if len(glob.glob(os.path.join(cd,'data',channel_cbh[:-2]+'cbh','*'+date+'*')))==0 and channel_cbh !="":
             logger.error('No cbh inputs found.')
             no_cbh=True
             if config['allow_no_cbh']==False:
@@ -85,7 +85,7 @@ def process_day(date,config):
         else:
             no_cbh=False
         
-        if len(glob.glob(os.path.join(cd,'data',channel_met.replace('00','sel'),'*'+date+'*')))==0 and channel_met !="":
+        if len(glob.glob(os.path.join(cd,'data',channel_met[:-2]+'sel','*'+date+'*')))==0 and channel_met !="":
             logger.error('No met inputs found.')
             no_met=True
             if config['allow_no_met']==False:

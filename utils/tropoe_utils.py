@@ -302,7 +302,7 @@ def extract_cbh_ceil(channel,date,config,logger):
 
     Output['base_time']=np.int64(basetime)
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
-    name_save=channel.split('/')[1][:-1]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
+    name_save=channel.split('/')[1][:-2]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
 
 def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=None):
