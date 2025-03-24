@@ -201,7 +201,7 @@ def exctract_met(channel,date,site,config,logger):
             except:
                 logger.error(f+' failed to load')
                 
-    elif site=='barg':
+    elif site=='barg' or site=='barg_no_ceil':
         
         #run this if using the raw met data
         if 'barg' in config['met_headers']:

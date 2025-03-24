@@ -241,7 +241,7 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     plt.tight_layout()
     plt.xlabel('Time (UTC)')
 
-dir_save=os.path.join(cd,'data',channel_irs).replace('00','c0').replace('assist','assist.tropoe')
-name_save='.'.join(os.path.basename(file_ch1).replace('.00.','.c0.').replace('.assist.','.assist.tropoe.').split('.')[:-2])+'_tropoe_inputs.png'
+dir_save=os.path.join(cd,'data',channel_irs).replace('00',config['data_level_output']).replace('assist','assist.tropoe')
+name_save='.'.join(os.path.basename(file_ch1).replace('.00.','.'+config['data_level_output']+'.').replace('.assist.','.assist.tropoe.').split('.')[:-2])+'_tropoe_inputs.png'
 utl.mkdir(dir_save)
 plt.savefig(os.path.join(dir_save,name_save))
