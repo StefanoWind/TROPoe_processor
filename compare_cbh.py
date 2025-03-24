@@ -10,6 +10,7 @@ sys.path.append(os.path.join(cd,'utils'))
 import tropoe_utils as trp
 from matplotlib import pyplot as plt
 from datetime import datetime
+from multiprocessing import Pool
 from datetime import timedelta
 import logging
 import yaml
@@ -30,6 +31,16 @@ else:
     edate=sys.argv[4]
     source_config=os.path.join(cd,'configs',sys.argv[5])
     
+#%% Functions
+def process_day(date,config):
+    logger,handler=utl.create_logger(os.path.join('log',channel_ceil.split('/')[1]+'-'+channel_lid.split('/')[1].split('*')[0],date+'.log'))
+    logger = logging.getLogger()
+    logger.info('Building TROPoe inputs for '+date+' for CBH comparison between '+channel_ceil+' and '+channel_lid)
+
+    Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
+    Output_cbh_lid=trp.compute_cbh_halo(channel_lid.split('*')[0],date,config,logger)
+    return Output_cbh_ceil,Output_cbh_lid
+    
 #%% Initialization
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
@@ -46,19 +57,18 @@ while current_date <= datetime.strptime(edate,'%Y%m%d'):
 os.makedirs(os.path.join(cd,'log',channel_ceil.split('/')[1]+'-'+channel_lid.split('/')[1].split('*')[0]),exist_ok=True)
 
 #%% Main
+
+#download
 time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d'),'%Y%m%d%H%M%S'),
               datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=0.9999),'%Y%m%d%H%M%S')]
 n_files_cbh_ceil=trp.download(channel_ceil,time_range,'',config)
 n_files_cbh_lid=trp.download(channel_lid.split('*')[0],time_range,channel_lid.split('*')[1],config)
 
-for d in days:
-    date=datetime.strftime(d,'%Y%m%d')
-    
-    logger,handler=utl.create_logger(os.path.join('log',channel_ceil.split('/')[1]+'-'+channel_lid.split('/')[1].split('*')[0],date+'.log'))
-    logger = logging.getLogger()
-    logger.info('Building TROPoe inputs for '+date+' for CBH comparison between '+channel_ceil+' and '+channel_lid)
+#process    
+args = [(datetime.strftime(days[i],'%Y%m%d'), config) for i in range(len(days))]
 
-    Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
+with Pool() as pool:
+    pool.starmap(process_day, args)
     
-    Output_cbh_lid=trp.compute_cbh_halo(channel_lid.split('*')[0],date,config,logger)
+    
         
