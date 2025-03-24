@@ -282,9 +282,10 @@ def extract_cbh_ceil(channel,date,config,logger):
     
     #load data
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
-    Data=xr.open_mfdataset(files,combine="nested",concat_dim="time")
+    Data=xr.open_mfdataset(files,combine="by_coords")
     
     cbh=np.float64(Data['cloud_data'].values[:,0])#first CBH
+    cbh[cbh<0]=-9999
     
     #time info (UTC)
     tnum=np.float64(Data['time'].values)
@@ -304,6 +305,8 @@ def extract_cbh_ceil(channel,date,config,logger):
     Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
     name_save=channel.split('/')[1][:-2]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
+    
+    return Output
 
 def pre_filter(files,min_resp=0.7,max_ir=0.5,resp_wnum=1000,ir_wnum=985,logger=None):
     '''
