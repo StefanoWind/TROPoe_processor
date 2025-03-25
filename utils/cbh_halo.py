@@ -77,7 +77,7 @@ def compute_cbh(file,utl,averages=3,signal='beta',plot=True):
     elif signal=='beta':
         #attenuated backscatter
         f0=moving_average(Data['beta'].values,window)
-        tol=0.5*10**-6#[m^-2 sr^-1] prominence of peak of beta gradient
+        tol=1*10**-6#[m^-2 sr^-1] prominence of peak of beta gradient
     else:
         raise ValueError(signal+' is not an allowed variable for CBH estimation')
 

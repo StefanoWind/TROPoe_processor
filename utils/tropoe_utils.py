@@ -127,7 +127,7 @@ def compute_cbh_halo(channel,date,config,logger):
     cbh_all=[]
     for f in files:
         try:
-            time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,plot=config['detailed_plots'])
+            time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,averages=config['cbh_averages'],plot=config['detailed_plots'])
             tnum_all=np.append(tnum_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
             cbh_all=np.append(cbh_all,cbh_lidar)
         except:
