@@ -13,6 +13,7 @@ from datetime import datetime
 from multiprocessing import Pool
 from datetime import timedelta
 import logging
+import glob
 import yaml
 
 plt.close('all')
@@ -36,9 +37,11 @@ def process_day(date,config):
     logger,handler=utl.create_logger(os.path.join('log',channel_ceil.split('/')[1]+'-'+channel_lid.split('/')[1].split('*')[0],date+'.log'))
     logger = logging.getLogger()
     logger.info('Building TROPoe inputs for '+date+' for CBH comparison between '+channel_ceil+' and '+channel_lid)
-
-    Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
-    Output_cbh_lid=trp.compute_cbh_halo(channel_lid.split('*')[0],date,config,logger)
+    
+    if len(glob.glob(os.path.join(cd,'data',channel_ceil.replace(channel_ceil[-2:],'cbh'),'*'+date+'*nc')))==0:
+        Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
+    if len(glob.glob(os.path.join(cd,'data',channel_lid.split('*')[0].replace(channel_lid.split('*')[0][-2:],'cbh'),'*'+date+'*nc')))==0:
+        Output_cbh_lid=trp.compute_cbh_halo(channel_lid.split('*')[0],date,config,logger)
     return Output_cbh_ceil,Output_cbh_lid
     
 #%% Initialization
