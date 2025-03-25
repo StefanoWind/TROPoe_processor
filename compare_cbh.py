@@ -42,7 +42,7 @@ def process_day(date,config):
         Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
     if len(glob.glob(os.path.join(cd,'data',channel_lid.split('*')[0].replace(channel_lid.split('*')[0][-2:],'cbh'),'*'+date+'*nc')))==0:
         Output_cbh_lid=trp.compute_cbh_halo(channel_lid.split('*')[0],date,config,logger)
-    return Output_cbh_ceil,Output_cbh_lid
+    # return Output_cbh_ceil,Output_cbh_lid
     
 #%% Initialization
 with open(source_config, 'r') as fid:
