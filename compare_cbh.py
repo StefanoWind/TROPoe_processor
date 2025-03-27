@@ -22,21 +22,23 @@ plt.close('all')
 if len(sys.argv)==1:
     channel_ceil='wfip3/barg.ceil.z01.b0'
     channel_lid='wfip3/barg.lidar.z03.a0*stare'
-    sdate='20240529'
-    edate='20241010'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
+    sdate='20240609'
+    edate='20240609'
+    source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil_local.yaml')
+    option='serial'
 else:
     channel_ceil=sys.argv[1]
     channel_lid=sys.argv[2]
     sdate=sys.argv[3]
     edate=sys.argv[4]
     source_config=os.path.join(cd,'configs',sys.argv[5])
+    option='parallel'
     
 #%% Functions
 def process_day(date,config):
     logger,handler=utl.create_logger(os.path.join('log',channel_ceil.split('/')[1]+'-'+channel_lid.split('/')[1].split('*')[0],date+'.log'))
     logger = logging.getLogger()
-    logger.info('Building TROPoe inputs for '+date+' for CBH comparison between '+channel_ceil+' and '+channel_lid)
+    logger.info('Building CBH comparison on '+ date+' between '+channel_ceil+' and '+channel_lid)
     
     if len(glob.glob(os.path.join(cd,'data',channel_ceil.replace(channel_ceil[-2:],'cbh'),'*'+date+'*nc')))==0:
         Output_cbh_ceil=trp.extract_cbh_ceil(channel_ceil,date,config,logger)
@@ -68,10 +70,14 @@ n_files_cbh_ceil=trp.download(channel_ceil,time_range,'',config)
 n_files_cbh_lid=trp.download(channel_lid.split('*')[0],time_range,channel_lid.split('*')[1],config)
 
 #process    
-args = [(datetime.strftime(days[i],'%Y%m%d'), config) for i in range(len(days))]
-
-with Pool() as pool:
-    pool.starmap(process_day, args)
+if option=='parallel':
+    args = [(datetime.strftime(days[i],'%Y%m%d'), config) for i in range(len(days))]
     
+    with Pool() as pool:
+        pool.starmap(process_day, args)
+elif option=='serial':
+    for d in days:
+        process_day(datetime.strftime(d,'%Y%m%d'),config)
+        
     
         
