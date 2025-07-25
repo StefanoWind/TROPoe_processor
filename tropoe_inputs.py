@@ -118,7 +118,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 channel_cbh=config['channel_cbh'][site].split('*')[0]
 if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
-        n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date)))
+        n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*')))
         if n_files_cbh==0:
             logger.error('No cbh data found.')
             if config['allow_no_cbh']==False:
@@ -142,7 +142,7 @@ else:
 channel_met=config['channel_met'][site]
 if channel_met !="":
     if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:#check if met file exists
-        n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date)))
+        n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date+'*')))
         if n_files_met==0:
             logger.error('No met data found.')
             if config['allow_no_met']==False:
