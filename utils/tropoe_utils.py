@@ -3,10 +3,8 @@ Auxiliary modules for TROPoe
 """
 
 def download(channel,time_range,ext1,config):
-    import sys
     import os
     cd=os.getcwd()
-    sys.path.append(config['path_dap_py']) 
     from doe_dap_dl import DAP
     
     a2e = DAP('a2e.energy.gov',confirm_downloads=False)
@@ -112,10 +110,8 @@ def compute_cbh_halo(channel,date,config,logger):
     import os
     cd=os.getcwd()
     import glob
-    import sys
-    sys.path.append(config['path_utils']) 
-    import cbh_halo as cbh
-    import utils as utl
+    from utils import cbh_halo as cbh
+    from utils import utils as utl
     import numpy as np
     import xarray as xr
     from datetime import datetime
@@ -160,9 +156,7 @@ def exctract_met(channel,date,site,config,logger):
     import os
     cd=os.getcwd()
     import glob
-    import sys
-    sys.path.append(config['path_utils']) 
-    import utils as utl
+    from utils import utils as utl
     import numpy as np
     import xarray as xr
     import pandas as pd

@@ -5,8 +5,8 @@ Run TROPoe retrieval and store results
 import os
 cd=os.getcwd()
 import sys
-sys.path.append(os.path.join(cd,'utils')) 
-import tropoe_utils as trp
+from utils import utils as utl
+from utils import tropoe_utils as trp
 import numpy as np
 from matplotlib import pyplot as plt
 from datetime import datetime
@@ -17,17 +17,21 @@ import subprocess
 import shutil
 import yaml
 import glob as glob
-
+import matplotlib
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['mathtext.fontset'] = 'cm' 
+matplotlib.rcParams['font.size'] = 14
+matplotlib.rcParams['savefig.dpi'] = 300
 plt.close('all')
 
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='barg'
-    sdate='20240721'
-    edate='20240721'
+    site='s40'
+    sdate='20260226'
+    edate='20260227'
     option='serial'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
+    source_config=os.path.join(cd,'configs/config_corsair.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -158,10 +162,6 @@ def process_day(date,config):
 #inputs
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
-    
-#imports
-sys.path.append(config['path_utils']) 
-import utils as utl
 
 #clear up space on docker
 if config['image_type']=='docker':

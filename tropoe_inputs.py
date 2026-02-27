@@ -5,8 +5,8 @@ General data preconditioning for TROPoe
 import os
 cd=os.getcwd()
 import sys
-sys.path.append(os.path.join(cd,'utils')) 
-import tropoe_utils as trp
+from utils import utils as utl
+from utils import tropoe_utils as trp
 from datetime import datetime
 from datetime import timedelta
 import logging
@@ -24,17 +24,16 @@ import warnings
 matplotlib.rcParams['font.family'] = 'serif'
 matplotlib.rcParams['mathtext.fontset'] = 'cm' 
 matplotlib.rcParams['font.size'] = 14
-
+matplotlib.rcParams['savefig.dpi'] = 300
 plt.close('all')
 warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='barg_no_ceil'
-    date='20240728'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1_no_ceil.yaml')
+    site='s40'
+    date='20260226'
+    source_config=os.path.join(cd,'configs/config_corsair.yaml')
     os.makedirs(os.path.join('log',site),exist_ok=True)
-
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -44,10 +43,6 @@ else:
 #%% Initialization
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
-
-#imports
-sys.path.append(config['path_utils']) 
-import utils as utl
 
 logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
 logger = logging.getLogger()
