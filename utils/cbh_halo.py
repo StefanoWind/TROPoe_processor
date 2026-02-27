@@ -89,7 +89,7 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
         #attenuated backscatter
         f0=moving_average(Data['beta'].values,window)
         tol=1*10**-6#[m^-2 sr^-1] prominence of peak of beta gradient
-        label=r'$\beta$ [m${-1}$ sr$^{-1}$]'
+        label=r'$\beta$ [m$^{-1}$ sr$^{-1}$]'
         
     else:
         raise ValueError(signal+' is not an allowed variable for CBH estimation')
@@ -153,20 +153,20 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
             f_int[i,:]=np.interp(z_plot,z[i,:],f[i,:])
         
         plt.figure(figsize=(18,8))
-        plt.subplot(3,1,1)
-        plt.pcolor(time_plot,z_plot,rws_int.T,cmap='seismic')
+        plt.subplot(2,1,1)
+        pc=plt.pcolor(time_plot,z_plot,rws_int.T,cmap='seismic')
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.ylabel(r'$z$ [m]')
-        plt.scatter(time_avg_plot,cbh_avg,s=30,color='c',edgecolor='k')
+        plt.scatter(time_avg_plot,cbh_avg,s=50,color='c',edgecolor='k')
         plt.title(os.path.basename(file))
-        plt.colorbar(label=r'$u_{LOS}$ [m s$^{-1}$]')
+        plt.colorbar(pc,label=r'$u_{LOS}$ [m s$^{-1}$]')
         
-        plt.subplot(3,1,2)
-        plt.pcolor(time_plot,z_plot,f_int.T,cmap='hot')
-        plt.scatter(time_avg_plot,cbh_avg,s=30,color='c',edgecolor='k')
+        plt.subplot(2,1,2)
+        pc=plt.pcolor(time_plot,z_plot,f_int.T,cmap='hot')
+        plt.scatter(time_avg_plot,cbh_avg,s=50,color='c',edgecolor='k')
         plt.gca().xaxis.set_major_formatter(date_fmt)
         plt.ylabel(r'$z$ [m]')
-        plt.colorbar(label=label)
+        plt.colorbar(pc,label=label)
         
         plt.savefig(figname_save,dpi=150)
         plt.close()
