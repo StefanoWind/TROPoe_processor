@@ -28,8 +28,8 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='s40'
-    sdate='20260226'
-    edate='20260227'
+    sdate='20260517'
+    edate='20260517'
     option='serial'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
 else:
