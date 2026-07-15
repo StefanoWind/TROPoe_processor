@@ -51,7 +51,7 @@ def process_day(date,config):
     channel_cbh=config['channel_cbh'][site].split('*')[0]
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
-    prior_file=config['prior_file']
+    prior_file=config['prior_file'][site]
     verbosity=config['verbosity']
     image_name=config['image_name']
     image_type=config['image_type']
