@@ -51,6 +51,7 @@ def process_day(date,config):
     channel_cbh=config['channel_cbh'][site].split('*')[0]
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
+    prior_file=config['prior_file']
     verbosity=config['verbosity']
     image_name=config['image_name']
     image_type=config['image_type']
@@ -121,8 +122,12 @@ def process_day(date,config):
         
         #run TROPoe
         vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        month=date[4:6]
-        prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+        
+        #use monthly prior if provided
+        if prior_file == "":
+            month=date[4:6]
+            prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+            
         command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
         logger.info('The following will be executed: \n'+command+'\n')
         result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
