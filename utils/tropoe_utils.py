@@ -2,72 +2,85 @@
 Auxiliary modules for TROPoe
 """
 
-def download(channel,time_range,ext1,config):
+def download(channel,time_range,ext1,config,duration=7):
     import os
     cd=os.getcwd()
     from doe_dap_dl import DAP
+    import pandas as pd
+    from datetime import datetime
     
+    #initialize
     a2e = DAP('a2e.energy.gov',confirm_downloads=False)
     a2e.setup_cert_auth(username=config['username'], password=config['password'])
     
     _filter={}
+    n_files=0
     
-    if 'assist' in channel:
-        _filter = {
-                    'Dataset': channel,
-                    'date_time': {
-                        'between': time_range
-                    },
-                    'file_type': 'cdf',
-                    'ext1':['assistsummary','assistcha','assistno10cha','assistno11cha','assistno12cha'],
-                }
-        
-    elif 'lidar' in channel:
-        _filter = {
-                    'Dataset': channel,
-                    'date_time': {
-                        'between': time_range
-                    },
-                    'file_type': 'nc',
-                    'ext1':ext1,
-                }
+    dates = pd.date_range(
+    start=time_range[0],
+    end=time_range[1],
+    freq=f"{duration}D"
+    )
     
-    elif 'ceil' in channel:
-        _filter = {
-                    'Dataset': channel,
-                    'date_time': {
-                        'between': time_range
-                    },
-                    'file_type': 'nc',
-                }
+    #loop through periods
+    for d1,d2 in zip(dates[:-1],dates[1:]):
         
+        time_range_sel=[datetime.strftime(d1,'%Y%m%d%H%M%S'),datetime.strftime(d2,'%Y%m%d%H%M%S')]
+        
+        if 'assist' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'cdf',
+                        'ext1':['assistsummary','assistcha','assistno10cha','assistno11cha','assistno12cha'],
+                    }
             
-    elif 'rhod.met' in channel:
-        _filter = {
-                    'Dataset': channel,
-                    'date_time': {
-                        'between': time_range
-                    },
-                    'file_type': 'csv',
-                }
+        elif 'lidar' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'nc',
+                        'ext1':ext1,
+                    }
         
-    elif 'barg.ecflux' in channel:
-        _filter = {
-                    'Dataset': channel,
-                    'date_time': {
-                        'between': time_range
-                    },
-                    'file_type': 'nc',
-                }
-   
+        elif 'ceil' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'nc',
+                    }
+            
+        elif 'rhod.met' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'csv',
+                    }
+            
+        elif 'barg.ecflux' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'nc',
+                    }
+       
+        files=a2e.search(_filter)
+        a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
+        
+        if not files==[]:
+            n_files+=len(files)
     
-    files=a2e.search(_filter)
-    a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
-    
-    if files==[]:
-        return 0
-    else:
-        return len(files)
+    return n_files
 
 def copy_rename_assist_00(channel,sdate, edate,chassistdir,sumassistdir):
     '''

@@ -27,8 +27,8 @@ plt.close('all')
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='s40_rt'
-    sdate='20260716'
+    site='s40'
+    sdate='20260223'
     edate='20260716'
     option='serial'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
