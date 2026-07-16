@@ -57,8 +57,8 @@ channel_cbh=config['channel_cbh'][site].split('*')[0]
 # format raw files
 if 'raw' in channel_irs:
       trp.copy_rename_assist_raw(channel_irs,date) 
-      if 'lidar' in channel_cbh: 
-          trp.format_lidar(channel_cbh,date,config['path_config_format'][site]) 
+      if 'lidar' in channel_cbh:
+          trp.format_lidar(channel_cbh,date,config['path_config_format'][site])
           channel_cbh=channel_cbh.replace('raw','a0')
       channel_irs=channel_irs.replace('raw','00')
       
@@ -128,24 +128,20 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 
 #get cbh data
 if channel_cbh !="":
-    if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
-        n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*')))
-        if n_files_cbh==0:
-            logger.error('No cbh data found.')
-            if config['allow_no_cbh']==False:
-                raise BaseException()
-        else:
-            if 'lidar' in channel_cbh:
-                    logger.info('Running cbh retrieval from lidar data')
-                    Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
-                
-            elif 'ceil' in channel_cbh:
-                logger.info('Extracting cbh from ceilometer data')
-                trp.extract_cbh_ceil(channel_cbh,date,config,logger)
-            
+    n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*')))
+    if n_files_cbh==0:
+        logger.error('No cbh data found.')
+        if config['allow_no_cbh']==False:
+            raise BaseException()
     else:
-        logger.info('cbh data already available, skipping.')
-        
+        if 'lidar' in channel_cbh:
+            logger.info('Running cbh retrieval from lidar data')
+            Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+
+        elif 'ceil' in channel_cbh:
+            logger.info('Extracting cbh from ceilometer data')
+            trp.extract_cbh_ceil(channel_cbh,date,config,logger)
+
 else:
     logger.info('No cbh channel provided.')
         
@@ -186,8 +182,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 
     file_ch1_ncf=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
     Data_ch1_nfc=xr.open_dataset(file_ch1_ncf).sortby('time')
-    Data_ch1_nfc['mean_rad']=xr.where(Data_ch1_nfc['missingDataFlag']==0,Data_ch1_nfc['mean_rad'],np.nan)#mask mean_rad with missingDataFlag
-
+   
     tnum_ch1_nfc=Data_ch1_nfc.time.values+Data_ch1_nfc.base_time.values/10**3
     time_ch1_nfc=np.array([datetime.utcfromtimestamp(np.float64(t)) for t in tnum_ch1_nfc])
     sky_ch1_nfc=Data_ch1_nfc['sceneMirrorAngle'].values==0

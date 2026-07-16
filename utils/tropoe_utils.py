@@ -162,35 +162,77 @@ def format_lidar(channel,date,config_path):
         lproc = lg.Format(f, config=config_path, verbose=True,logfile=None)
         lproc.process_scan(replace=False, save_file=True,save_path=save_path,make_figures=False)
     
+def compute_cbh_halo_file(f,config,logger,force=False):
+    '''
+    Compute CBH for a single lidar file and cache it next to the source file,
+    so re-running a day only (re)computes CBH for files that don't have it yet.
+
+    force=True always recomputes and overwrites the cache, used for the most
+    recently arrived file since it may have been partially written when last processed.
+    '''
+    import os
+    from utils import cbh_halo as cbh
+    from utils import utils as utl
+    import numpy as np
+    import xarray as xr
+
+    f_cbh=os.path.splitext(f)[0]+'.cbh.nc'
+    if os.path.exists(f_cbh) and not force:
+        return f_cbh
+
+    try:
+        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,averages=config['cbh_averages'],plot=config['detailed_plots'])
+        Output=xr.Dataset()
+        Output['cbh']=xr.DataArray(data=np.float32(cbh_lidar),
+                                    coords={'time':time_cbh},
+                                    attrs={'description':'First cloud base height','units':'m'})
+        Output.to_netcdf(f_cbh)
+    except Exception as e:
+        logger.error('CBH estimation failed on '+f+': '+str(e))
+        return None
+
+    return f_cbh
+
 def compute_cbh_halo(channel,date,config,logger):
     '''
-    Generate daily CBH time series for TROPoe
+    Generate daily CBH time series for TROPoe by combining per-file CBH
+    retrievals, computing only the ones missing (new real-time arrivals)
     '''
     import os
     cd=os.getcwd()
     import glob
-    from utils import cbh_halo as cbh
     from utils import utils as utl
     import numpy as np
     import xarray as xr
     from datetime import datetime
 
     os.makedirs(os.path.join(cd,'data',channel[:-2]+'cbh'),exist_ok=True)
-         
+
     files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*nc')))
+    files=[f for f in files if not f.endswith('.cbh.nc')]
+    for i,f in enumerate(files):
+        #the most recent file may have been partially written when last processed, so always redo it
+        compute_cbh_halo_file(f,config,logger,force=(i==len(files)-1))
+
+    files_cbh=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cbh.nc')))
     tnum_all=[]
     cbh_all=[]
-    for f in files:
-        try:
-            time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,averages=config['cbh_averages'],plot=config['detailed_plots'])
-            tnum_all=np.append(tnum_all,(time_cbh-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1, 's'))
-            cbh_all=np.append(cbh_all,cbh_lidar)
-        except Exception as e:
-            logger.error('CBH estimation failed on '+f+': '+str(e))
-        
+    for f_cbh in files_cbh:
+        with xr.open_dataset(f_cbh) as Data_cbh:
+            tnum_all=np.append(tnum_all,utl.dt64_to_num(Data_cbh['time'].values))
+            cbh_all=np.append(cbh_all,Data_cbh['cbh'].values)
+
+    if len(tnum_all)==0:
+        logger.error('No CBH data available on '+date+'.')
+        raise BaseException()
+
+    isort=np.argsort(tnum_all)
+    tnum_all=tnum_all[isort]
+    cbh_all=cbh_all[isort]
+
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
-    
+
     if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
         logger.error('Unallowable data gap found in CBH data. Aborting.')
         raise BaseException()
