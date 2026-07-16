@@ -59,12 +59,13 @@ if 'raw' in channel_irs:
       trp.copy_rename_assist_raw(channel_irs,date) 
       if 'lidar' in channel_cbh: 
           trp.format_lidar(channel_cbh,date,config['path_config_format'][site]) 
+          channel_cbh=channel_cbh.replace('raw','a0')
       channel_irs=channel_irs.replace('raw','00')
       
       tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
       chassistdir=os.path.join(tmpdir,'ch1_rt')
       sumassistdir=os.path.join(tmpdir,'sum_rt')
-      nfchassistdir=os.path.join(tmpdir,'nfc_rt')
+      nfchassistdir=os.path.join(tmpdir,'ch1_rt')
 else:
     tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
     chassistdir=os.path.join(tmpdir,'ch1')
