@@ -28,7 +28,7 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='s40_rt'
-    sdate='20260223'
+    sdate='20260716'
     edate='20260716'
     option='serial'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
@@ -47,8 +47,9 @@ def process_day(date,config):
     '''
     
     #extract config
-    channel_irs=config['channel_irs'][site]
-    channel_cbh=config['channel_cbh'][site].split('*')[0]
+    channel_irs=config['channel_irs'][site].replace('raw','00')
+    if 'lidar' in config['channel_cbh'][site]:
+        channel_cbh=config['channel_cbh'][site].split('*')[0].replace('raw','a0')
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
     prior_file=config['prior_file'][site]
@@ -98,9 +99,9 @@ def process_day(date,config):
         else:
             no_met=False
         
-        if len(glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf')))==1:
-            f_ch1=glob.glob(os.path.join(tmpdir,'ch1','*'+date+'*cdf'))[0]
-            f_sum=glob.glob(os.path.join(tmpdir,'sum','*'+date+'*cdf'))[0]
+        if len(glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf')))==1:
+            f_ch1=glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf'))[0]
+            f_sum=glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf'))[0]
             
             #time check
             Data_ch1=xr.open_dataset(f_ch1)
