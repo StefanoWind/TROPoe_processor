@@ -183,7 +183,7 @@ print(result.stdout)
 print(result.stderr)
 
 #create directories
-os.makedirs(config['output_dir'],exist_ok=True)
+os.makedirs(config['output_dir'][site],exist_ok=True)
 os.makedirs(os.path.join('log',site),exist_ok=True)
 
 # Loop to generate the range of datetimes
