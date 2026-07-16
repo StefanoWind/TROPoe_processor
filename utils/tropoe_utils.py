@@ -128,6 +128,7 @@ def copy_rename_assist_raw(channel,date):
 
     #define new channel 
     new_channel=channel.replace('raw','00')
+    os.makedirs(os.path.join(cd,'data',new_channel),exist_ok=True)
         
     #copy  and rename files
     files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cdf'))
