@@ -69,21 +69,22 @@ def download(channel,time_range,ext1,config):
     else:
         return len(files)
 
-def copy_rename_assist(channel,sdate, edate,chassistdir,sumassistdir):
+def copy_rename_assist_00(channel,sdate, edate,chassistdir,sumassistdir):
+    '''
+    Rename and copy 00 ASSIST summary files
+    '''
     import os
     cd=os.getcwd()
     import glob
     import shutil
     from datetime import datetime,timedelta
-    '''
-    Rename and copy assist summary files
-    '''
+   
     
     #create folders
     os.makedirs(chassistdir,exist_ok=True)
     os.makedirs(sumassistdir,exist_ok=True)
     
-    #define date rage
+    #define date range
     dates = []
     cdate = datetime.strptime(sdate,'%Y%m%d')
     while cdate <= datetime.strptime(edate,'%Y%m%d'):
@@ -103,6 +104,50 @@ def copy_rename_assist(channel,sdate, edate,chassistdir,sumassistdir):
             elif 'summary' in f:
                 shutil.copy(f,os.path.join(sumassistdir,new_name))
 
+def copy_rename_assist_raw(channel,date):
+    '''
+    Rename and copy raw ASSIST summary files
+    '''
+    import os
+    cd=os.getcwd()
+    import glob
+    import shutil
+
+    #define new channel 
+    new_channel=channel.replace('raw','00')
+        
+    #copy  and rename files
+    files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cdf'))
+    for f in files:
+        old_name=os.path.basename(f)
+        date=old_name.split('.')[1]
+        time=old_name.split('.')[2]
+        if 'ChA' in old_name:
+            new_name=f'{new_channel.split("/")[1]}.{date}.{time}.assistcha.cdf'
+        elif 'assistsummary' in old_name:
+            new_name=f'{new_channel.split("/")[1]}.{date}.{time}.assistsummary.cdf'
+            
+        shutil.copy(f,os.path.join(cd,'data',new_channel,new_name))
+        
+
+def format_lidar(channel,date,config_path):
+    '''
+    Format file
+    '''
+    import os
+    cd=os.getcwd()
+    import lidargo as lg
+    import os
+    import glob
+    
+    save_path=os.path.join(cd,'data',channel.replace('raw','00'))
+    
+    files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*hpl'))
+    
+    for f in files:
+        lproc = lg.Format(f, config=config_path, verbose=True,logfile=None)
+        lproc.process_scan(replace=False, save_file=True,save_path=save_path,make_figures=False)
+    
 def compute_cbh_halo(channel,date,config,logger):
     '''
     Generate daily CBH time series for TROPoe

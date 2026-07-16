@@ -27,9 +27,9 @@ plt.close('all')
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='s40'
-    sdate='20260517'
-    edate='20260517'
+    site='s40_rt'
+    sdate='20260716'
+    edate='20260716'
     option='serial'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
 else:
@@ -194,7 +194,7 @@ while current_date <= datetime.strptime(edate,'%Y%m%d'):
     
 #download all data
 if config['channel_irs'][site]!="":
-    time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d%H%M%S'),
+    time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d%H%M%S'),
                   datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
     n_files_irs=trp.download(config['channel_irs'][site],time_range,'',config)
     print(str(n_files_irs)+' ASSIST files downloaded')

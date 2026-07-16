@@ -30,8 +30,8 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='s40'
-    date='20260226'
+    site='s40_rt'
+    date='20260716'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
     os.makedirs(os.path.join('log',site),exist_ok=True)
 else:
@@ -49,15 +49,27 @@ logger = logging.getLogger()
 logger.info('Building TROPoe inputs for '+date+' at '+site)
 
 #%% Main
-channel_irs=config['channel_irs'][site]
-n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
-if n_files_irs==0:
-    logger.error('No ASSIST data found. Aborting.')
-    raise BaseException()
-    
+
 #define temporary directory if not provided
-if len(sys.argv)==1:
+channel_irs=config['channel_irs'][site]
+channel_cbh=config['channel_cbh'][site].split('*')[0]
+
+# format raw files
+if 'raw' in channel_irs:
+      trp.copy_rename_assist_raw(channel_irs,date) 
+      if 'lidar' in channel_cbh: 
+          trp.format_lidar(channel_cbh,date,config['path_config_format'][site]) 
+      channel_irs=channel_irs.replace('raw','00')
+      
+      tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+      chassistdir=os.path.join(tmpdir,'ch1_rt')
+      sumassistdir=os.path.join(tmpdir,'sum_rt')
+      nfchassistdir=os.path.join(tmpdir,'nfc_rt')
+else:
     tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+    chassistdir=os.path.join(tmpdir,'ch1')
+    sumassistdir=os.path.join(tmpdir,'sum')
+    nfchassistdir=os.path.join(tmpdir,'nfc')
 
 #clear old temp files
 if os.path.exists(tmpdir):
@@ -65,25 +77,25 @@ if os.path.exists(tmpdir):
     
 os.makedirs(tmpdir,exist_ok=True)
 
-#define directories
-chassistdir=os.path.join(tmpdir,'ch1')
-sumassistdir=os.path.join(tmpdir,'sum')
-nfchassistdir=os.path.join(tmpdir,'nfc')
-
 #create temp vip file
 with open(os.path.join(cd,'configs',f'vip_{site}.txt'), "r") as f:
     vip = f.read()
 vip=vip.replace('{date}',date)
 with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
     f.write(vip)
+         
+#check file existence
+n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
+if n_files_irs==0:
+    logger.error('No ASSIST data found. Aborting.')
+    raise BaseException()
 
 #qc settings
-logger.info('Running PCA filter')
-sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc']-1),'%Y%m%d')
+sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d')
 edate=date
 
 #pre-conditioning
-trp.copy_rename_assist(channel_irs,sdate,edate,chassistdir,sumassistdir)
+trp.copy_rename_assist_00(channel_irs,sdate,edate,chassistdir,sumassistdir)
 if config['apply_prefilter']:
     trp.pre_filter(files=glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
 
@@ -92,16 +104,20 @@ if config['override_hatch']:
     trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
     
 #pca filter
-command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-result = subprocess.run(command, shell=True, text=True,capture_output=True)
-logger.info(result.stdout)
-logger.error(result.stderr)
-
-command=config['path_python']+f' utils/run_irs_nf.py --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-result = subprocess.run(command, shell=True, text=True,capture_output=True)
-logger.info(result.stdout)
-logger.error(result.stderr)
-
+if config['N_days_nfc'][site]>1:
+    logger.info('Running PCA filter')
+    command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+    result = subprocess.run(command, shell=True, text=True,capture_output=True)
+    logger.info(result.stdout)
+    logger.error(result.stderr)
+    
+    command=config['path_python']+f' utils/run_irs_nf.py --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+    result = subprocess.run(command, shell=True, text=True,capture_output=True)
+    logger.info(result.stdout)
+    logger.error(result.stderr)
+else:
+    logger.info('PCA filter skipped')
+    
 #remove atmospheric pressure that causes error
 if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
     f_ch1=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
@@ -110,7 +126,6 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
     Data_ch1.close()
 
 #get cbh data
-channel_cbh=config['channel_cbh'][site].split('*')[0]
 if channel_cbh !="":
     if len(glob.glob(os.path.join(cd,'data',channel_cbh.replace(channel_cbh[-2:],'cbh'),'*'+date+'*nc')))==0:#check if cbh file exists
         n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*')))
