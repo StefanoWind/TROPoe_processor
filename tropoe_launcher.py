@@ -62,107 +62,123 @@ def process_day(date,config):
         with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site))) as fid:
             processed=fid.readlines()
         processed=[p.strip() for p in processed]
-    else: 
+    else:
         processed=[]
 
     if sum([date == p for p in processed])==0:
 
-        #create daily logger
-        logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
-        
-        #define temporary directories
-        tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
-        
-        logger.info('Running TROPoe at '+site+' on '+date)
-        print('Running TROPoe at '+site+' on '+date)
+        #try to acquire a lock for this day so a concurrent instance skips it
+        lockdir=os.path.join(cd,'data','locks',site)
+        os.makedirs(lockdir,exist_ok=True)
+        lockfile=os.path.join(lockdir,date+'.lock')
+        try:
+            fd=os.open(lockfile,os.O_CREAT|os.O_EXCL|os.O_WRONLY)
+            os.close(fd)
+        except FileExistsError:
+            print(date+' is already being processed by another instance. Skipping.')
+            return
 
-        #create input files
-        command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config} {tmpdir}'
-        result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
-        logger.info(result.stdout)
-        logger.error(result.stderr)
-        
-        #check input files
-        if len(glob.glob(os.path.join(cd,'data',channel_cbh[:-2]+'cbh','*'+date+'*')))==0 and channel_cbh !="":
-            logger.error('No cbh inputs found.')
-            no_cbh=True
-            if config['allow_no_cbh']==False:
-                return 
-        else:
-            no_cbh=False
-        
-        if len(glob.glob(os.path.join(cd,'data',channel_met[:-2]+'sel','*'+date+'*')))==0 and channel_met !="":
-            logger.error('No met inputs found.')
-            no_met=True
-            if config['allow_no_met']==False:
-                return
-        else:
-            no_met=False
-        
-        if len(glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf')))==1:
-            f_ch1=glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf'))[0]
-            f_sum=glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf'))[0]
-            
-            #time check
-            Data_ch1=xr.open_dataset(f_ch1)
-            time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
-            del(Data_ch1)
-            
-            Data_sum=xr.open_dataset(f_sum,decode_timedelta=False)
-            time_sum=np.sort(Data_sum['time'].values+Data_sum['base_time'].values/10**3)
-            del(Data_sum)
-            
-            if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
-                logger.error('Inconsistent time on '+date+'. Skipping.')
+        try:
+            #create daily logger
+            logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
+
+            #define temporary directories
+            tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+
+            logger.info('Running TROPoe at '+site+' on '+date)
+            print('Running TROPoe at '+site+' on '+date)
+
+            #create input files
+            command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config} {tmpdir}'
+            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+            logger.info(result.stdout)
+            logger.error(result.stderr)
+
+            #check input files
+            if len(glob.glob(os.path.join(cd,'data',channel_cbh[:-2]+'cbh','*'+date+'*')))==0 and channel_cbh !="":
+                logger.error('No cbh inputs found.')
+                no_cbh=True
+                if config['allow_no_cbh']==False:
+                    return
+            else:
+                no_cbh=False
+
+            if len(glob.glob(os.path.join(cd,'data',channel_met[:-2]+'sel','*'+date+'*')))==0 and channel_met !="":
+                logger.error('No met inputs found.')
+                no_met=True
+                if config['allow_no_met']==False:
+                    return
+            else:
+                no_met=False
+
+            if len(glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf')))==1:
+                f_ch1=glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf'))[0]
+                f_sum=glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf'))[0]
+
+                #time check
+                Data_ch1=xr.open_dataset(f_ch1)
+                time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
+                del(Data_ch1)
+
+                Data_sum=xr.open_dataset(f_sum,decode_timedelta=False)
+                time_sum=np.sort(Data_sum['time'].values+Data_sum['base_time'].values/10**3)
+                del(Data_sum)
+
+                if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
+                    logger.error('Inconsistent time on '+date+'. Skipping.')
+                    utl.close_logger(logger, handler)
+                    return
+            else:
+                logger.error('Missing or multiple files found on '+date+'. Skipping.')
                 utl.close_logger(logger, handler)
                 return
-        else:
-            logger.error('Missing or multiple files found on '+date+'. Skipping.')
-            utl.close_logger(logger, handler)
-            return
-        
-        #run TROPoe
-        vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        
-        #use monthly prior if provided
-        if prior_file == "":
-            month=date[4:6]
-            prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
-            
-        command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
-        logger.info('The following will be executed: \n'+command+'\n')
-        result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True) 
-        logger.info(result.stdout)
-        logger.error(result.stderr)
-        
-        #post-processing
-        if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
-            
-            #add to processed list
-            with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
-                fid.write(date+'\n')
-            
-            #clear temp files
-            if os.path.exists(tmpdir):
-                shutil.rmtree(tmpdir)
-                
-            file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
-            
-            #close logger
-            logger.info('Succesfully created retrieval '+file_tropoe)
-            utl.close_logger(logger, handler)
-            
-            #plot maps
-            Data=xr.open_dataset(file_tropoe)
-            trp.plot_temp_wvmr(Data,config,file_tropoe,no_cbh,no_met)
-            plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
-            plt.close()
-            
-        else:
-            logger.info('Skipping '+f_ch1)
-            utl.close_logger(logger, handler)
-            return
-    
+
+            #run TROPoe
+            vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+
+            #use monthly prior if provided
+            if prior_file == "":
+                month=date[4:6]
+                prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+
+            command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
+            logger.info('The following will be executed: \n'+command+'\n')
+            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+            logger.info(result.stdout)
+            logger.error(result.stderr)
+
+            #post-processing
+            if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
+
+                #add to processed list
+                with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
+                    fid.write(date+'\n')
+
+                #clear temp files
+                if os.path.exists(tmpdir):
+                    shutil.rmtree(tmpdir)
+
+                file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
+
+                #close logger
+                logger.info('Succesfully created retrieval '+file_tropoe)
+                utl.close_logger(logger, handler)
+
+                #plot maps
+                Data=xr.open_dataset(file_tropoe)
+                trp.plot_temp_wvmr(Data,config,file_tropoe,no_cbh,no_met)
+                plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
+                plt.close()
+
+            else:
+                logger.info('Skipping '+f_ch1)
+                utl.close_logger(logger, handler)
+                return
+        finally:
+            #release the lock so a future run can retry this day if it wasn't marked processed
+            if os.path.exists(lockfile):
+                os.remove(lockfile)
+
 #%% Initialization
 
 #inputs
