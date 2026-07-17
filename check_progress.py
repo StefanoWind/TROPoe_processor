@@ -4,6 +4,7 @@ Check progress in TROPoe files
 """
 import os
 cd=os.getcwd()
+os.environ['HDF5_USE_FILE_LOCKING']='FALSE'
 import sys
 import xarray as xr
 import glob
@@ -28,10 +29,9 @@ files=glob.glob(os.path.join(folder,'*nc'))
 
 #%% Main
 for f in files:
-    Data=xr.open_dataset(f)
-    
-    print(os.path.basename(f))
-    progress_bar(len(Data.time),np.timedelta64(1,'D')/np.nanmedian(np.diff(Data.time)))
-    print()
+    with xr.open_dataset(f) as Data:
+        print(os.path.basename(f))
+        progress_bar(len(Data.time),np.timedelta64(1,'D')/np.nanmedian(np.diff(Data.time)))
+        print()
     
 input('Press any key')
