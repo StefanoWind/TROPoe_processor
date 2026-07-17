@@ -3,7 +3,7 @@
 General data preconditioning for TROPoe
 """
 import os
-cd=os.getcwd()
+cd=os.path.dirname(os.path.abspath(__file__))
 import sys
 from utils import utils as utl
 from utils import tropoe_utils as trp
@@ -33,7 +33,7 @@ if len(sys.argv)==1:
     site='s40_rt'
     date='20260716'
     source_config=os.path.join(cd,'configs/config_corsair.yaml')
-    os.makedirs(os.path.join('log',site),exist_ok=True)
+    os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
 else:
     site=sys.argv[1]
     date=sys.argv[2]
@@ -44,7 +44,7 @@ else:
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
 
-logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
+logger,handler=utl.create_logger(os.path.join(cd,'log',site,date+'.log'))
 logger = logging.getLogger()
 logger.info('Building TROPoe inputs for '+date+' at '+site)
 
@@ -107,12 +107,12 @@ if config['override_hatch']:
 #pca filter
 if config['N_days_nfc'][site]>1:
     logger.info('Running PCA filter')
-    command=config['path_python']+f' utils/run_irs_nf.py --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
     result = subprocess.run(command, shell=True, text=True,capture_output=True)
     logger.info(result.stdout)
     logger.error(result.stderr)
     
-    command=config['path_python']+f' utils/run_irs_nf.py --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
     result = subprocess.run(command, shell=True, text=True,capture_output=True)
     logger.info(result.stdout)
     logger.error(result.stderr)

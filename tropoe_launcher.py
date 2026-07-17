@@ -3,7 +3,7 @@ Run TROPoe retrieval and store results
 '''
 
 import os
-cd=os.getcwd()
+cd=os.path.dirname(os.path.abspath(__file__))
 import sys
 from utils import utils as utl
 from utils import tropoe_utils as trp
@@ -80,7 +80,7 @@ def process_day(date,config):
 
         try:
             #create daily logger
-            logger,handler=utl.create_logger(os.path.join('log',site,date+'.log'))
+            logger,handler=utl.create_logger(os.path.join(cd,'log',site,date+'.log'))
 
             #define temporary directories
             tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
@@ -89,7 +89,7 @@ def process_day(date,config):
             print('Running TROPoe at '+site+' on '+date)
 
             #create input files
-            command=config['path_python']+f' tropoe_inputs.py {site} {date} {source_config} {tmpdir}'
+            command=config['path_python']+f' {os.path.join(cd,"tropoe_inputs.py")} {site} {date} {source_config} {tmpdir}'
             result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
             logger.info(result.stdout)
             logger.error(result.stderr)
@@ -141,7 +141,7 @@ def process_day(date,config):
                 month=date[4:6]
                 prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
 
-            command =f'./run_tropoe_ops.sh {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
+            command =f'{os.path.join(cd,"run_tropoe_ops.sh")} {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
             logger.info('The following will be executed: \n'+command+'\n')
             result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
             logger.info(result.stdout)
@@ -198,7 +198,7 @@ result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
 
 #create directories
 os.makedirs(config['output_dir'][site],exist_ok=True)
-os.makedirs(os.path.join('log',site),exist_ok=True)
+os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
 
 # Loop to generate the range of datetimes
 days=[]
