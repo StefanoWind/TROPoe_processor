@@ -33,13 +33,13 @@ echo "                                 Image type : ${10}"
 
 if [[ ${10} == "podman" ]]; then
   echo "Running image Podman"
-  podman run -it -u root --rm -e "yyyymmdd=$1" -e "vfile=/data/$2" -e "pfile=/data/$3" -e "shour=$4" -e "ehour=$5" -e "verbose=$6" -e "HDF5_USE_FILE_LOCKING=FALSE" -v $7:/data -v $8:/tmp2 $9
+  podman run -it -u root --rm -e "yyyymmdd=$1" -e "vfile=/data/$2" -e "pfile=/data/$3" -e "shour=$4" -e "ehour=$5" -e "verbose=$6" -v $7:/data -v $8:/tmp2 $9
 elif [[ ${10} == "docker" ]]; then
   echo "Running image Docker"
-  docker run -it --userns=host -e "yyyymmdd=$1" -e "vfile=/data/$2" -e "pfile=/data/$3" -e "shour=$4" -e "ehour=$5" -e "verbose=$6" -e "HDF5_USE_FILE_LOCKING=FALSE" -v $7:/data -v $8:/tmp2 $9
+  docker run -it --userns=host -e "yyyymmdd=$1" -e "vfile=/data/$2" -e "pfile=/data/$3" -e "shour=$4" -e "ehour=$5" -e "verbose=$6" -v $7:/data -v $8:/tmp2 $9
 elif [[ ${10} == "apptainer" ]]; then
   echo "Running image Apptainer"
-  apptainer run --bind $7:/data --bind $8:/tmp2 --env yyyymmdd=$1 --env vfile=/data/$2 --env pfile=/data/$3 --env shour=$4 --env ehour=$5 --env verbose=$6 --env HDF5_USE_FILE_LOCKING=FALSE $9
+  apptainer run --bind $7:/data --bind $8:/tmp2 --env yyyymmdd=$1 --env vfile=/data/$2 --env pfile=/data/$3 --env shour=$4 --env ehour=$5 --env verbose=$6 $9
 else
   echo "The image type is not supported"
 fi
