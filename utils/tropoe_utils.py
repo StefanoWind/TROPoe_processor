@@ -159,7 +159,7 @@ def format_lidar(channel,date,config_path):
     files=glob.glob(os.path.join(cd,'data',channel,'*'+date+'*hpl'))
     
     for f in files:
-        lproc = lg.Format(f, config=config_path, verbose=True,logfile=None)
+        lproc = lg.Format(f, config=config_path, verbose=False,logfile=None)
         lproc.process_scan(replace=False, save_file=True,save_path=save_path,make_figures=False)
     
 def compute_cbh_halo_file(f,config,logger,force=False):
