@@ -561,7 +561,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     cb.set_label(r'Temperature [$^\circ$C]')
     
     ax=plt.subplot(2,1,2)
-    CS=plt.contourf(time,height,r.T,np.round(np.arange(np.nanpercentile(r, 5),np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
+    CS=plt.contourf(time,height,r.T,np.round(np.arange(0,np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
     plt.ylim([0,config['max_z']])
     plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
     if np.sum(~np.isnan(cbh_sel))>0:

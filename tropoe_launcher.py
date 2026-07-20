@@ -140,8 +140,9 @@ def process_day(date,config):
             if prior_file == "":
                 month=date[4:6]
                 prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
-
-            command =f'{os.path.join(cd,"run_tropoe_ops.sh")} {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
+            
+            tropoe_shell=config['tropoe_shell']
+            command =f'{os.path.join(cd,{tropoe_shell})} {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
             logger.info('The following will be executed: \n'+command+'\n')
             result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
             logger.info(result.stdout)
