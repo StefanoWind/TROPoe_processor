@@ -30,9 +30,9 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='s40_rt'
-    date='20260716'
-    source_config=os.path.join(cd,'configs/config_corsair.yaml')
+    site='mvco'
+    date='20240418'
+    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
     os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
 else:
     site=sys.argv[1]
@@ -72,9 +72,9 @@ else:
     sumassistdir=os.path.join(tmpdir,'sum')
     nfchassistdir=os.path.join(tmpdir,'nfc')
 
-#clear old temp files
-if os.path.exists(tmpdir):
-    shutil.rmtree(tmpdir)
+# #clear old temp files
+# if os.path.exists(tmpdir):
+#     shutil.rmtree(tmpdir)
     
 os.makedirs(tmpdir,exist_ok=True)
 
@@ -85,11 +85,11 @@ vip=vip.replace('{date}',date)
 with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
     f.write(vip)
          
-#check file existence
-n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
-if n_files_irs==0:
-    logger.error('No ASSIST data found. Aborting.')
-    raise BaseException()
+# #check file existence
+# n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
+# if n_files_irs==0:
+#     logger.error('No ASSIST data found. Aborting.')
+#     raise BaseException()
 
 #qc settings
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d')
@@ -104,26 +104,27 @@ if config['override_hatch']:
     trp.overrride_hatch_flag(glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
     trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
     
-#pca filter
-if config['N_days_nfc'][site]>1:
-    logger.info('Running PCA filter')
-    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
+# #pca filter
+# if config['N_days_nfc'][site]>1:
+#     logger.info('Running PCA filter')
+#     command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+#     result = subprocess.run(command, shell=True, text=True,capture_output=True)
+#     logger.info(result.stdout)
+#     logger.error(result.stderr)
     
-    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
-else:
-    logger.info('PCA filter skipped')
+#     command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+#     result = subprocess.run(command, shell=True, text=True,capture_output=True)
+#     logger.info(result.stdout)
+#     logger.error(result.stderr)
+# else:
+#     logger.info('PCA filter skipped')
     
 #remove atmospheric pressure that causes error
 if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
     f_ch1=glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf'))[0]
     Data_ch1 = Dataset(f_ch1,'a')
-    Data_ch1.renameVariable('atmosphericPressure','deprecated_atmosphericPressure')
+    if 'atmosphericPressure' in Data_ch1.variables:
+        Data_ch1.renameVariable('atmosphericPressure','deprecated_atmosphericPressure')
     Data_ch1.close()
 
 #get cbh data

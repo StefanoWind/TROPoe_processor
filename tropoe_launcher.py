@@ -27,11 +27,11 @@ plt.close('all')
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='s40_rt'
-    sdate='20260716'
-    edate='20260716'
+    site='mvco'
+    sdate='20250101'
+    edate='20250101'
     option='serial'
-    source_config=os.path.join(cd,'configs/config_corsair.yaml')
+    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
@@ -142,7 +142,7 @@ def process_day(date,config):
                 prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
             
             tropoe_shell=config['tropoe_shell']
-            command =f'{os.path.join(cd,{tropoe_shell})} {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
+            command =f'{os.path.join(cd,tropoe_shell)} {date} {vip_file} {prior_file} 0 24 {verbosity} {cd} {cd} {image_name} {image_type}'
             logger.info('The following will be executed: \n'+command+'\n')
             result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
             logger.info(result.stdout)

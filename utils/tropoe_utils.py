@@ -48,13 +48,22 @@ def download(channel,time_range,ext1,config,duration=7):
                     }
         
         elif 'ceil' in channel:
-            _filter = {
-                        'Dataset': channel,
-                        'date_time': {
-                            'between': time_range_sel
-                        },
-                        'file_type': 'nc',
-                    }
+            if 'mvco' not in channel:
+                _filter = {
+                            'Dataset': channel,
+                            'date_time': {
+                                'between': time_range_sel
+                            },
+                            'file_type': 'nc',
+                        }
+            else:
+                _filter = {
+                            'Dataset': channel,
+                            'date_time': {
+                                'between': time_range_sel
+                            },
+                            'file_type': 'dat',
+                        }
             
         elif 'rhod.met' in channel:
             _filter = {
@@ -359,34 +368,103 @@ def exctract_met(channel,date,site,config,logger):
 
     return Output
 
+def _extract_cbh_ceil_nc(files):
+    '''
+    Extract first CBH and time (UTC, s) from ARM-style Vaisala ceilometer netCDF files
+    '''
+    import xarray as xr
+    import numpy as np
+
+    Data=xr.open_mfdataset(files,combine="by_coords")
+
+    cbh=np.float64(Data['cloud_data'].values[:,0])#first CBH
+    cbh[cbh<0]=-9999
+
+    tnum=np.float64(Data['time'].values)
+
+    return tnum,cbh
+
+def _extract_cbh_ceil_dat(files):
+    '''
+    Extract first CBH and time (UTC, s) from raw Vaisala CL31 .dat logfiles.
+
+    File layout (per record, 7 lines): timestamp line ("-YYYY-MM-DD HH:MM:SS"),
+    instrument id line, status line (cloud count + first CBH in ft), scale/resolution
+    line, backscatter profile (hex-encoded), checksum line, blank line.
+    '''
+    import numpy as np
+    import pandas as pd
+    from datetime import datetime
+
+    ft_to_m=0.3048
+
+    times=[]
+    cbh_ft=[]
+    for file in files:
+        with open(file,'rb') as f:
+            raw=f.read()
+        lines=raw.decode('latin-1').split('\r\n')
+
+        #skip header lines and locate the first timestamp record
+        i=0
+        while i<len(lines) and not (len(lines[i])==20 and lines[i].startswith('-') and lines[i][1:5].isdigit()):
+            i+=1
+
+        while i+3<len(lines):
+            line1=lines[i]
+            line3=lines[i+2]
+            try:
+                t=datetime.strptime(line1[1:20],'%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                break
+
+            try:
+                h=float(line3[3:8])
+            except ValueError:
+                h=np.nan
+
+            times.append(t)
+            cbh_ft.append(h)
+            i+=7#advance to the next 7-line record
+
+    tnum=pd.to_datetime(times).values.astype('datetime64[s]').astype(np.float64)
+    cbh=np.float64(cbh_ft)*ft_to_m
+    cbh[np.isnan(cbh)]=-9999
+
+    order=np.argsort(tnum)
+    return tnum[order],cbh[order]
+
 def extract_cbh_ceil(channel,date,config,logger):
     '''
-    Extact first CBH from Vaisala ceilometer and format as TROPoe input
+    Extact first CBH from Vaisala ceilometer and format as TROPoe input.
+    Supports both ARM-style netCDF files and raw Vaisala CL31 .dat logfiles.
     '''
     import os
     cd=os.getcwd()
-    import sys
-    sys.path.append(config['path_utils']) 
-    import utils as utl
+    from utils import utils as utl
     import glob
     import xarray as xr
     import numpy as np
     from datetime import datetime
-    
+
     os.makedirs(os.path.join(cd,'data',channel[:-2]+'cbh'),exist_ok=True)
-    
+
     #load data
-    files=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*')))
-    Data=xr.open_mfdataset(files,combine="by_coords")
-    
-    cbh=np.float64(Data['cloud_data'].values[:,0])#first CBH
-    cbh[cbh<0]=-9999
-    
+    files_nc=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*.nc')))
+    files_dat=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*.dat')))
+
+    if len(files_nc)>0:
+        tnum,cbh=_extract_cbh_ceil_nc(files_nc)
+    elif len(files_dat)>0:
+        tnum,cbh=_extract_cbh_ceil_dat(files_dat)
+    else:
+        logger.error('No ceilometer data found for '+date+'. Aborting.')
+        raise BaseException()
+
     #time info (UTC)
-    tnum=np.float64(Data['time'].values)
     basetime=utl.floor(tnum[0],24*3600)
     time_offset=tnum-basetime
-    
+
     if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
         logger.error('Unallowable data gap found in CBH data. Aborting.')
         raise BaseException()
