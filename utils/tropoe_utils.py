@@ -23,9 +23,9 @@ def download(channel,time_range,ext1,config,duration=7):
     freq=f"{duration}D"
     )
 
-    #handle time ranges shorter than duration (date_range yields <2 entries)
-    if len(dates)<2:
-        dates = pd.DatetimeIndex([pd.Timestamp(time_range[0]),pd.Timestamp(time_range[1])])
+    #include the final partial period when the range isn't a multiple of duration
+    if dates[-1]<pd.Timestamp(time_range[1]):
+        dates = dates.append(pd.DatetimeIndex([pd.Timestamp(time_range[1])]))
 
     #loop through periods
     for d1,d2 in zip(dates[:-1],dates[1:]):
