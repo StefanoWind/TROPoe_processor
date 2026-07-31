@@ -148,7 +148,7 @@ def process_day(date,config):
             logger.error(result.stderr)
 
             #post-processing
-            if len(glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc')))==1:
+            if len(glob.glob(os.path.join(config['output_dir'][site],'*'+date+'*nc')))==1:
 
                 #add to processed list
                 with open(os.path.join(cd,'data/processed-{site}.txt'.format(site=site)), 'a') as fid:
