@@ -16,12 +16,17 @@ def download(channel,time_range,ext1,config,duration=7):
     _filter={}
     n_files=0
     
+    
     dates = pd.date_range(
     start=time_range[0],
     end=time_range[1],
     freq=f"{duration}D"
     )
-    
+
+    #handle time ranges shorter than duration (date_range yields <2 entries)
+    if len(dates)<2:
+        dates = pd.DatetimeIndex([pd.Timestamp(time_range[0]),pd.Timestamp(time_range[1])])
+
     #loop through periods
     for d1,d2 in zip(dates[:-1],dates[1:]):
         
