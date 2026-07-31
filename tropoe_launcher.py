@@ -28,8 +28,8 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='mvco'
-    sdate='20250101'
-    edate='20250101'
+    sdate='20240418'
+    edate='20240418'
     option='serial'
     source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:
@@ -48,10 +48,7 @@ def process_day(date,config):
     
     #extract config
     channel_irs=config['channel_irs'][site].replace('raw','00')
-    if 'lidar' in config['channel_cbh'][site]:
-        channel_cbh=config['channel_cbh'][site].split('*')[0].replace('raw','a0')
-    else: 
-        channel_cbh=config['channel_cbh'][site]
+    channel_cbh=config['channel_cbh'][site].split('*')[0]
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
     prior_file=config['prior_file'][site]

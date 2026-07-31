@@ -10,7 +10,7 @@ def download(channel,time_range,ext1,config,duration=7):
     from datetime import datetime
     
     #initialize
-    a2e = DAP('a2e.energy.gov',confirm_downloads=False)
+    a2e = DAP('wdh.energy.gov',confirm_downloads=False)
     a2e.setup_cert_auth(username=config['username'], password=config['password'])
     
     _filter={}
