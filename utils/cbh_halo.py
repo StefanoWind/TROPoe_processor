@@ -101,18 +101,22 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
     Nr=len(z[0,:])
 
     #reshape into rep x beam x range
-    tnum_3d=tnum.reshape(reps,Nb)
-    f_3d=f.reshape(reps,Nb,Nr)
-    
-    #time average
-    duration=np.nanmedian(np.diff(tnum_3d,axis=0))
-    bin_reps=np.arange(0,reps+1,int(averages/duration))
-    tnum_avg0=[]
-    f_avg=[]
-    for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
-        sel=np.arange(rep1,rep2)
-        tnum_avg0=np.append(tnum_avg0,np.nanmean(tnum_3d[sel,:],axis=0))
-        f_avg=   utl.vstack(f_avg,    np.nanmean(f_3d[sel,:,:],axis=0))
+    if reps>=averages:
+        tnum_3d=tnum.reshape(reps,Nb)
+        f_3d=f.reshape(reps,Nb,Nr)
+        
+        #time average
+        duration=np.nanmedian(np.diff(tnum_3d,axis=0))
+        bin_reps=np.arange(0,reps+1,int(averages/duration))
+        tnum_avg0=[]
+        f_avg=[]
+        for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
+            sel=np.arange(rep1,rep2)
+            tnum_avg0=np.append(tnum_avg0,np.nanmean(tnum_3d[sel,:],axis=0))
+            f_avg=   utl.vstack(f_avg,    np.nanmean(f_3d[sel,:,:],axis=0))
+    else:
+        f_avg=f.copy()
+        tnum_avg0=tnum.copy()
         
     #gradients
     df_dz=np.gradient(f_avg,axis=1)

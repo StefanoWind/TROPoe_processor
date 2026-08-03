@@ -30,9 +30,9 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='mvco'
-    date='20240418'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
+    site='sa_rt'
+    date='20260803'
+    source_config=os.path.join(cd,'configs/config_anvil.yaml')
     os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
 else:
     site=sys.argv[1]
@@ -53,11 +53,12 @@ logger.info('Building TROPoe inputs for '+date+' at '+site)
 #define temporary directory if not provided
 channel_irs=config['channel_irs'][site]
 channel_cbh=config['channel_cbh'][site].split('*')[0]
+ext_cbh=config['channel_cbh'][site].split('*')[1]
 
 # format raw files
 if 'raw' in channel_irs:
       trp.copy_rename_assist_raw(channel_irs,date) 
-      if 'lidar' in channel_cbh:
+      if 'lidar' in channel_cbh and 'path_config_format' in config:
           trp.format_lidar(channel_cbh,date,config['path_config_format'][site])
           channel_cbh=channel_cbh.replace('raw','a0')
       channel_irs=channel_irs.replace('raw','00')
@@ -129,7 +130,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 
 #get cbh data
 if channel_cbh !="":
-    n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*')))
+    n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*'+ext_cbh+'*nc')))
     if n_files_cbh==0:
         logger.error('No cbh data found.')
         if config['allow_no_cbh']==False:

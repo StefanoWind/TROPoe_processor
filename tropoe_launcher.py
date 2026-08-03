@@ -27,11 +27,11 @@ plt.close('all')
 #%% Inputs
 
 if len(sys.argv)==1:
-    site='mvco'
-    sdate='20240418'
-    edate='20240418'
+    site='sa_rt'
+    sdate='20260803'
+    edate='20260803'
     option='serial'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
+    source_config=os.path.join(cd,'configs/config_anvil.yaml')
 else:
     site=sys.argv[1]
     sdate=sys.argv[2]
