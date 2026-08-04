@@ -52,7 +52,8 @@ else:
 
         #read-only, non-locking, closed immediately: safe to run alongside a TROPoe container still appending to today's chunk
         datasets=[xr.open_dataset(f) for f in day_files]
-        Data=xr.concat(datasets,dim='time').sortby('time')
+        Data=xr.concat(datasets,dim='time',data_vars='minimal',coords='minimal',compat='override').sortby('time')
+        Data=Data.drop_duplicates('time',keep='first')
 
         trp.plot_temp_wvmr(Data,config,day_files[-1])
         plt.savefig(os.path.join(odir,site+'_'+date+'.png'))

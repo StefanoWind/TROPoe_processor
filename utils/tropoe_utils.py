@@ -613,7 +613,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
 
     
     time=np.array(Data['time'])
-    date=str(Data.base_time.values)[:10].replace('-','')
+    date=str(Data.time.values[0])[:10].replace('-','')
     height0=np.array(Data['height'][:])*1000
     sel_z=height0<config['max_z']
     height=height0[sel_z]
