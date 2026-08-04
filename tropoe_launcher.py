@@ -158,7 +158,7 @@ def process_day(date,config):
                 if os.path.exists(tmpdir):
                     shutil.rmtree(tmpdir)
 
-                file_tropoe=glob.glob(os.path.join(cd,'data',channel_irs.replace('00',config['data_level_output']).replace('assist','assist.tropoe'),'*'+date+'*nc'))[0]
+                file_tropoe=glob.glob(os.path.join(config['output_dir'][site],'*'+date+'*nc'))[0]
 
                 #close logger
                 logger.info('Succesfully created retrieval '+file_tropoe)
