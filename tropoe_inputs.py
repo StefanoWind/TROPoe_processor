@@ -89,8 +89,9 @@ with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
 #check file existence
 n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
 if n_files_irs==0:
-    logger.error('No ASSIST data found. Aborting.')
-    raise BaseException()
+    msg='No ASSIST data found for '+date+' at '+site+'. Aborting.'
+    logger.error(msg)
+    raise utl.TropoeInputError(msg)
 
 #qc settings
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d')
@@ -134,7 +135,7 @@ if channel_cbh !="":
     if n_files_cbh==0:
         logger.error('No cbh data found.')
         if config['allow_no_cbh']==False:
-            raise BaseException()
+            raise utl.TropoeInputError('No cbh data found for '+date+' at '+site+' and allow_no_cbh is False.')
     else:
         if 'lidar' in channel_cbh:
             logger.info('Running cbh retrieval from lidar data')
@@ -155,7 +156,7 @@ if channel_met !="":
         if n_files_met==0:
             logger.error('No met data found.')
             if config['allow_no_met']==False:
-                raise BaseException()
+                raise utl.TropoeInputError('No met data found for '+date+' at '+site+' and allow_no_met is False.')
         else:
             logger.info('Extracting met data')
             Data_met=trp.exctract_met(channel_met,date,site,config,logger)

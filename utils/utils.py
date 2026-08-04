@@ -4,6 +4,10 @@ General utilities
 """
 import numpy as np
 
+class TropoeInputError(RuntimeError):
+    '''Raised when required TROPoe input data is missing or invalid, so the
+    traceback names the actual cause instead of a bare BaseException.'''
+
 def create_logger(filename,level='info'):
     import logging
     # Create a logger

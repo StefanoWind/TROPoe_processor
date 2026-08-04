@@ -237,8 +237,9 @@ def compute_cbh_halo(channel,date,config,logger):
             cbh_all=np.append(cbh_all,Data_cbh['cbh'].values)
 
     if len(tnum_all)==0:
-        logger.error('No CBH data available on '+date+'.')
-        raise BaseException()
+        msg='No CBH data available on '+date+'.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
 
     isort=np.argsort(tnum_all)
     tnum_all=tnum_all[isort]
@@ -248,8 +249,9 @@ def compute_cbh_halo(channel,date,config,logger):
     time_offset=tnum_all-basetime
 
     if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
-        logger.error('Unallowable data gap found in CBH data. Aborting.')
-        raise BaseException()
+        msg='Unallowable data gap found in CBH data on '+date+'. Aborting.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
 
     Output=xr.Dataset()
     Output['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh_all,nan=-9999)),
@@ -303,13 +305,13 @@ def exctract_met(channel,date,site,config,logger):
                          
                     tnum_all=np.append(tnum_all,utl.datenum(tstr_met,'%Y-%m-%d %H:%M:%S.%f'))
                 
-                temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
-                press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
-                rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
-                
-            except:
-                logger.error(f+' failed to load')
-                
+                temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)
+                press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values)
+                rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values)
+
+            except Exception as e:
+                logger.error(f+' failed to load: '+str(e))
+
     elif site=='barg' or site=='barg_no_ceil':
         
         #run this if using the raw met data
@@ -328,12 +330,12 @@ def exctract_met(channel,date,site,config,logger):
                     for i in range(len(Data.index)):
                         tstr=Data.iloc[i,0]+' '+Data.iloc[i,1]
                         tnum_all=np.append(tnum_all,utl.datenum(tstr,'%Y/%m/%d %H:%M:%S.%f'))
-                    temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)  
-                    press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values) 
-                    rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values) 
-                except:
-                    logger.error(f+' failed to load')
-                
+                    temp_all=np.append(temp_all,Data.iloc[:,met_headers['temperature']].values)
+                    press_all=np.append(press_all,Data.iloc[:,met_headers['pressure']].values)
+                    rh_all=np.append(rh_all,Data.iloc[:,met_headers['humidity']].values)
+                except Exception as e:
+                    logger.error(f+' failed to load: '+str(e))
+
         #runs this if using the a0 met data
         else:
             for f in files:
@@ -342,16 +344,22 @@ def exctract_met(channel,date,site,config,logger):
                     tnum_all=np.append(tnum_all,(Data.time.values-719529)*60*60*24)#Matlab time ot UNIX timestamp
                     temp_all=np.append(temp_all,Data['air_temp_c'].sel(air_temp_sensors=0).values)
                     press_all=np.append(press_all,Data['air_press_mb'].sel(num_air_press=0).values)
-                    rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values) 
-                except:
-                    logger.error(f+' failed to load')
-                
+                    rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values)
+                except Exception as e:
+                    logger.error(f+' failed to load: '+str(e))
+
+    if len(tnum_all)==0:
+        msg='No met data could be loaded for '+date+' at '+site+'.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
+
     basetime=utl.floor(tnum_all[0],24*3600)
     time_offset=tnum_all-basetime
-    
+
     if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_met']==False:
-        logger.error('Unallowable data gap found in met data. Aborting.')
-        raise BaseException()
+        msg='Unallowable data gap found in met data on '+date+'. Aborting.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
 
     Output=xr.Dataset()
     Output['temp_mean']=     xr.DataArray(data=np.nan_to_num(temp_all,nan=-9999),
@@ -463,16 +471,18 @@ def extract_cbh_ceil(channel,date,config,logger):
     elif len(files_dat)>0:
         tnum,cbh=_extract_cbh_ceil_dat(files_dat)
     else:
-        logger.error('No ceilometer data found for '+date+'. Aborting.')
-        raise BaseException()
+        msg='No ceilometer data found for '+date+'. Aborting.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
 
     #time info (UTC)
     basetime=utl.floor(tnum[0],24*3600)
     time_offset=tnum-basetime
 
     if np.max(np.diff(np.concatenate([[0],time_offset,[3600*24]])))>config['max_data_gap'] and config['allow_no_cbh']==False:
-        logger.error('Unallowable data gap found in CBH data. Aborting.')
-        raise BaseException()
+        msg='Unallowable data gap found in CBH data on '+date+'. Aborting.'
+        logger.error(msg)
+        raise utl.TropoeInputError(msg)
 
     Output=xr.Dataset()
     Output['first_cbh']=xr.DataArray(data=np.int32(np.nan_to_num(cbh,nan=-9999)),
