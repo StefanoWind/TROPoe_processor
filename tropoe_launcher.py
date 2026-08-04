@@ -62,7 +62,7 @@ def process_day(date,config,option):
         prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
 
     #split the day into retrieval chunks; full days are kept whole when days are already run in parallel
-    hours_process=24 if option=='parallel' else config.get('hours_process',{})
+    hours_process=24 if option=='parallel' else config.get('hours_process',24)
     if 24%hours_process!=0:
         raise ValueError(f"hours_process ({hours_process}) must evenly divide into 24 hours.")
     chunks=[(h,h+hours_process) for h in range(0,24,hours_process)]
