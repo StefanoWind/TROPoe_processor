@@ -19,13 +19,15 @@ matplotlib.rcParams['savefig.dpi'] = 300
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='s40_rt'
-    source_config=os.path.join(cd,'configs/config_corsair.yaml')
+    site='sa_rt'
+    date='20260803'
+    source_config=os.path.join(cd,'configs/config_anvil.yaml')
     odir=os.path.join(cd,'dashboard')
 else:
     site=sys.argv[1]
-    source_config=sys.argv[2]
-    odir=sys.argv[3]
+    date=sys.argv[2]
+    source_config=sys.argv[3]
+    odir=sys.argv[4]
 
 with open(source_config,'r') as fid:
     config=yaml.safe_load(fid)
@@ -35,7 +37,6 @@ os.makedirs(odir,exist_ok=True)
 #%% Main
 
 #today's output file grows throughout the day, so it is the only one worth rendering live
-date=datetime.now(timezone.utc).strftime('%Y%m%d')
 files=sorted(glob.glob(os.path.join(config['output_dir'][site],'*'+date+'*nc')))
 
 if len(files)==0:
