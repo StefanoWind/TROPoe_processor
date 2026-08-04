@@ -133,7 +133,7 @@ def process_day(date,config):
                 return
 
             #run TROPoe
-            vip_file=f'data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+            vip_file=f'/data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
 
             #use monthly prior if provided
             if prior_file == "":
