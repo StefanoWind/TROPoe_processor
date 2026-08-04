@@ -22,16 +22,12 @@ matplotlib.rcParams['savefig.dpi'] = 300
 if len(sys.argv)==1:
     site='sa_rt'
     source_config=os.path.join(cd,'configs/config_anvil.yaml')
-    odir=os.path.join(cd,'dashboard')
 else:
     site=sys.argv[1]
     source_config=sys.argv[2]
-    odir=sys.argv[3]
 
 with open(source_config,'r') as fid:
     config=yaml.safe_load(fid)
-
-os.makedirs(odir,exist_ok=True)
 
 #%% Main
 
@@ -56,10 +52,10 @@ else:
         Data=Data.drop_duplicates('time',keep='first')
 
         trp.plot_temp_wvmr(Data,config,day_files[-1])
-        plt.savefig(os.path.join(odir,site+'_'+date+'.png'))
+        plt.savefig(day_files[0].replace('.nc','_T_r.png'))
         plt.close()
 
         for ds in datasets:
             ds.close()
 
-        print('Updated '+os.path.join(odir,site+'_'+date+'.png')+' from '+', '.join(os.path.basename(f) for f in day_files))
+        print('Updated '+day_files[0].replace('.nc','_T_r.png')+' from '+', '.join(os.path.basename(f) for f in day_files))
