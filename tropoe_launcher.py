@@ -40,6 +40,30 @@ else:
     source_config=os.path.join(cd,'configs',sys.argv[5])
     
 #%% Fuctions
+def chunk_fingerprints(channel_irs_raw,date,chunks):
+    '''
+    Count and latest mtime of raw IRS files falling in each chunk's [shour,ehour) window,
+    so a chunk whose trailing raw files are still arriving can be told apart from one that is
+    genuinely done. Raw filenames are '<prefix>.<date>.<HHMMSS>.<...>.cdf' (see
+    tropoe_utils.copy_rename_assist_raw). Sites that don't ingest from a raw channel (their data
+    is fully downloaded up front) get a constant sentinel fingerprint, i.e. "processed" once seen.
+    '''
+    if 'raw' not in channel_irs_raw:
+        return {c:(-1,-1) for c in chunks}
+
+    buckets={c:[] for c in chunks}
+    for f in glob.glob(os.path.join(cd,'data',channel_irs_raw,'*'+date+'*cdf')):
+        parts=os.path.basename(f).split('.')
+        if len(parts)<3 or parts[1]!=date or len(parts[2])<2:
+            continue
+        hh=int(parts[2][:2])
+        for shour,ehour in chunks:
+            if shour<=hh<ehour:
+                buckets[(shour,ehour)].append(f)
+                break
+
+    return {c:(len(flist), max((os.path.getmtime(f) for f in flist), default=0.0)) for c,flist in buckets.items()}
+
 def process_day(date,config,option):
 
     '''
@@ -47,7 +71,8 @@ def process_day(date,config,option):
     '''
 
     #extract config
-    channel_irs=config['channel_irs'][site].replace('raw','00')
+    channel_irs_raw=config['channel_irs'][site]
+    channel_irs=channel_irs_raw.replace('raw','00')
     channel_cbh=config['channel_cbh'][site].split('*')[0]
     channel_met=config['channel_met'][site]
     site_prior=config['site_prior'][site]
@@ -68,14 +93,33 @@ def process_day(date,config,option):
     chunks=[(h,h+hours_process) for h in range(0,24,hours_process)]
     tags={(shour,ehour):f'{date}.{shour:02d}0000' for shour,ehour in chunks}
 
+    #a chunk is recorded as "tag,file_count,latest_mtime" instead of a bare tag, so it is only
+    #trusted as done once its raw-file fingerprint stops changing between runs (no new/updated
+    #files arrived since it was last processed), rather than forever once it succeeds once
     processed_file=os.path.join(cd,'data/processed-{site}.txt'.format(site=site))
     def read_processed():
+        result={}
         if os.path.exists(processed_file):
             with open(processed_file) as fid:
-                return [p.strip() for p in fid.readlines()]
-        return []
+                for line in fid:
+                    parts=line.strip().split(',')
+                    if len(parts)==3:
+                        result[parts[0]]=(int(parts[1]),float(parts[2]))
+        return result
 
-    if all(tags[c] in read_processed() for c in chunks):
+    def write_processed(tag,fingerprint):
+        processed=read_processed()
+        processed[tag]=fingerprint
+        with open(processed_file,'w') as fid:
+            for t in sorted(processed):
+                fid.write(f'{t},{processed[t][0]},{processed[t][1]}\n')
+
+    #fingerprint every chunk once up front; both the skip-check and the post-run record use this
+    #same snapshot, so a chunk is marked done against the input it was actually built from
+    fingerprints=chunk_fingerprints(channel_irs_raw,date,chunks)
+    processed=read_processed()
+
+    if all(processed.get(tags[c])==fingerprints[c] for c in chunks):
         return
 
     #try to acquire a lock for the shared, day-level input build so two concurrent
@@ -92,7 +136,7 @@ def process_day(date,config,option):
 
     locked=[]
     try:
-        pending=[c for c in chunks if tags[c] not in read_processed()]
+        pending=[c for c in chunks if processed.get(tags[c])!=fingerprints[c]]
         if len(pending)==0:
             return
 
@@ -183,13 +227,14 @@ def process_day(date,config,option):
                 logger.info(stdout)
                 logger.error(stderr)
 
-                matches=glob.glob(os.path.join(config['output_dir'][site],f'*{date}.{shour:02d}0000*nc'))
+                #match on the requested hour only: TROPoe names the file after the actual first
+                #sample time (e.g. '...000005.nc'), not the exact requested boundary
+                matches=glob.glob(os.path.join(config['output_dir'][site],f'*{date}.{shour:02d}????.nc'))
                 if len(matches)==1:
                     file_tropoe=matches[0]
 
-                    #add chunk to processed list
-                    with open(processed_file, 'a') as fid:
-                        fid.write(tag+'\n')
+                    #record the chunk as processed against the fingerprint it was built from
+                    write_processed(tag,fingerprints[(shour,ehour)])
 
                     logger.info('Succesfully created retrieval '+file_tropoe)
 
@@ -209,7 +254,8 @@ def process_day(date,config,option):
             utl.close_logger(logger, handler)
 
             #clear the shared temp files only once every chunk of this day is accounted for
-            if all(tags[c] in read_processed() for c in chunks) and os.path.exists(tmpdir):
+            processed_now=read_processed()
+            if all(processed_now.get(tags[c])==fingerprints[c] for c in chunks) and os.path.exists(tmpdir):
                 shutil.rmtree(tmpdir)
         finally:
             #release any chunk lock not already released above (e.g. early-return paths)
