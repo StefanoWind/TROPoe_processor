@@ -112,8 +112,9 @@ def process_day(date,config,option):
     if all(processed.get(tags[c])==fp for c in chunks):
         return
 
-    #try to acquire a lock for the shared, day-level input build so two concurrent
-    #instances never rebuild/clear the same tmpdir while a chunk retrieval is reading it
+    #the build lock only protects the short "should I rebuild the shared inputs, and which chunks
+    #am I claiming" decision below, not the (long) container runs -- otherwise one running instance
+    #would block every other instance from claiming different, still-pending chunks of the same day
     lockdir=os.path.join(cd,'data','locks',site)
     os.makedirs(lockdir,exist_ok=True)
     build_lockfile=os.path.join(lockdir,date+'.build.lock')
@@ -125,12 +126,73 @@ def process_day(date,config,option):
         return
 
     locked=[]
+    logger=None
+    handler=None
+    no_cbh=False
+    no_met=False
+    tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
     try:
         pending=[c for c in chunks if processed.get(tags[c])!=fingerprints[c]]
         if len(pending)==0:
             return
 
-        #acquire a lock per chunk, named after its output timestamp
+        #create daily logger
+        logger,handler=utl.create_logger(os.path.join(cd,'log',site,date+'.log'))
+
+        logger.info('Running TROPoe at '+site+' on '+date)
+        print('Running TROPoe at '+site+' on '+date)
+
+        #a per-chunk lock already existing means another instance's container is right now
+        #reading tmpdir: reuse it instead of rebuilding, which would corrupt that run. Any
+        #additional pending data will be picked up once that chunk finishes and its lock clears
+        already_running=glob.glob(os.path.join(lockdir,date+'.??0000.lock'))
+        if len(already_running)==0:
+            #create input files, shared by every chunk of this day
+            command=config['path_python']+f' {os.path.join(cd,"tropoe_inputs.py")} {site} {date} {source_config} {tmpdir}'
+            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+            logger.info(result.stdout)
+            logger.error(result.stderr)
+        else:
+            logger.info('Reusing shared inputs already built by another running instance for '+date+'.')
+
+        #check input files
+        if len(glob.glob(os.path.join(cd,'data',channel_cbh[:-2]+'cbh','*'+date+'*')))==0 and channel_cbh !="":
+            logger.error('No cbh inputs found.')
+            no_cbh=True
+            if config['allow_no_cbh']==False:
+                return
+        else:
+            no_cbh=False
+
+        if len(glob.glob(os.path.join(cd,'data',channel_met[:-2]+'sel','*'+date+'*')))==0 and channel_met !="":
+            logger.error('No met inputs found.')
+            no_met=True
+            if config['allow_no_met']==False:
+                return
+        else:
+            no_met=False
+
+        if len(glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf')))==1:
+            f_ch1=glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf'))[0]
+            f_sum=glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf'))[0]
+
+            #time check
+            Data_ch1=xr.open_dataset(f_ch1)
+            time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
+            del(Data_ch1)
+
+            Data_sum=xr.open_dataset(f_sum,decode_timedelta=False)
+            time_sum=np.sort(Data_sum['time'].values+Data_sum['base_time'].values/10**3)
+            del(Data_sum)
+
+            if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
+                logger.error('Inconsistent time on '+date+'. Skipping.')
+                return
+        else:
+            logger.error('Missing or multiple files found on '+date+'. Skipping.')
+            return
+
+        #acquire a lock per pending chunk not already claimed by another running instance
         for shour,ehour in pending:
             tag=tags[(shour,ehour)]
             lockfile=os.path.join(lockdir,tag+'.lock')
@@ -140,121 +202,74 @@ def process_day(date,config,option):
                 locked.append((shour,ehour,tag,lockfile))
             except FileExistsError:
                 print(tag+' is already being processed by another instance. Skipping.')
-        if len(locked)==0:
-            return
-
-        try:
-            #create daily logger
-            logger,handler=utl.create_logger(os.path.join(cd,'log',site,date+'.log'))
-
-            #define temporary directories
-            tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
-
-            logger.info('Running TROPoe at '+site+' on '+date)
-            print('Running TROPoe at '+site+' on '+date)
-
-            #create input files, shared by every chunk of this day
-            command=config['path_python']+f' {os.path.join(cd,"tropoe_inputs.py")} {site} {date} {source_config} {tmpdir}'
-            result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-            logger.info(result.stdout)
-            logger.error(result.stderr)
-
-            #check input files
-            if len(glob.glob(os.path.join(cd,'data',channel_cbh[:-2]+'cbh','*'+date+'*')))==0 and channel_cbh !="":
-                logger.error('No cbh inputs found.')
-                no_cbh=True
-                if config['allow_no_cbh']==False:
-                    return
-            else:
-                no_cbh=False
-
-            if len(glob.glob(os.path.join(cd,'data',channel_met[:-2]+'sel','*'+date+'*')))==0 and channel_met !="":
-                logger.error('No met inputs found.')
-                no_met=True
-                if config['allow_no_met']==False:
-                    return
-            else:
-                no_met=False
-
-            if len(glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf')))==1 and len(glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf')))==1:
-                f_ch1=glob.glob(os.path.join(tmpdir,'ch1*','*'+date+'*cdf'))[0]
-                f_sum=glob.glob(os.path.join(tmpdir,'sum*','*'+date+'*cdf'))[0]
-
-                #time check
-                Data_ch1=xr.open_dataset(f_ch1)
-                time_ch1=np.sort(Data_ch1['time'].values+Data_ch1['base_time'].values/10**3)
-                del(Data_ch1)
-
-                Data_sum=xr.open_dataset(f_sum,decode_timedelta=False)
-                time_sum=np.sort(Data_sum['time'].values+Data_sum['base_time'].values/10**3)
-                del(Data_sum)
-
-                if np.abs(np.nanmax(time_ch1)-np.nanmax(time_sum))>config['max_time_diff'] or np.abs(np.nanmin(time_ch1)-np.nanmin(time_sum))>config['max_time_diff']:
-                    logger.error('Inconsistent time on '+date+'. Skipping.')
-                    utl.close_logger(logger, handler)
-                    return
-            else:
-                logger.error('Missing or multiple files found on '+date+'. Skipping.')
-                utl.close_logger(logger, handler)
-                return
-
-            #launch every pending chunk at once: Popen does not block, unlike subprocess.run,
-            #so all containers start together instead of running one after another
-            vip_file=f'/data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-            tropoe_shell=config['tropoe_shell']
-            procs=[]
-            for shour,ehour,tag,lockfile in locked:
-                chunk_tmp=os.path.join(tmpdir,f'tmp2_{shour:02d}{ehour:02d}')
-                os.makedirs(chunk_tmp,exist_ok=True)
-                command=f'{os.path.join(cd,tropoe_shell)} {date} {vip_file} {prior_file} {shour} {ehour} {verbosity} {cd} {chunk_tmp} {image_name} {image_type}'
-                logger.info('The following will be executed: \n'+command+'\n')
-                proc=subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-                procs.append((shour,ehour,tag,lockfile,chunk_tmp,proc))
-
-            #wait for each chunk and post-process it independently as it finishes
-            for shour,ehour,tag,lockfile,chunk_tmp,proc in procs:
-                stdout,stderr=proc.communicate()
-                logger.info(stdout)
-                logger.error(stderr)
-
-                #match on the requested hour only: TROPoe names the file after the actual first
-                #sample time (e.g. '...000005.nc'), not the exact requested boundary
-                matches=glob.glob(os.path.join(config['output_dir'][site],f'*{date}.{shour:02d}????.nc'))
-                if len(matches)==1:
-                    file_tropoe=matches[0]
-
-                    #record the chunk as processed against the fingerprint it was built from
-                    write_processed(tag,fingerprints[(shour,ehour)])
-
-                    logger.info('Succesfully created retrieval '+file_tropoe)
-
-                    #plot maps
-                    Data=xr.open_dataset(file_tropoe)
-                    trp.plot_temp_wvmr(Data,config,file_tropoe,no_cbh,no_met)
-                    plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
-                    plt.close()
-                else:
-                    logger.info('Skipping chunk '+tag+': no output produced.')
-
-                if os.path.exists(chunk_tmp):
-                    shutil.rmtree(chunk_tmp)
-                if os.path.exists(lockfile):
-                    os.remove(lockfile)
-
-            utl.close_logger(logger, handler)
-
-            #clear the shared temp files only once every chunk of this day is accounted for
-            processed_now=read_processed()
-            if all(processed_now.get(tags[c])==fingerprints[c] for c in chunks) and os.path.exists(tmpdir):
-                shutil.rmtree(tmpdir)
-        finally:
-            #release any chunk lock not already released above (e.g. early-return paths)
-            for shour,ehour,tag,lockfile in locked:
-                if os.path.exists(lockfile):
-                    os.remove(lockfile)
     finally:
+        #release the build lock now that the shared-input decision and our own chunk claims are
+        #settled; the containers we're about to launch are protected by their own per-chunk locks
         if os.path.exists(build_lockfile):
             os.remove(build_lockfile)
+
+    if len(locked)==0:
+        if logger is not None:
+            utl.close_logger(logger,handler)
+        return
+
+    try:
+        #launch every claimed chunk at once: Popen does not block, unlike subprocess.run,
+        #so all containers start together instead of running one after another
+        vip_file=f'/data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+        tropoe_shell=config['tropoe_shell']
+        procs=[]
+        for shour,ehour,tag,lockfile in locked:
+            chunk_tmp=os.path.join(tmpdir,f'tmp2_{shour:02d}{ehour:02d}')
+            os.makedirs(chunk_tmp,exist_ok=True)
+            command=f'{os.path.join(cd,tropoe_shell)} {date} {vip_file} {prior_file} {shour} {ehour} {verbosity} {cd} {chunk_tmp} {image_name} {image_type}'
+            logger.info('The following will be executed: \n'+command+'\n')
+            proc=subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+            procs.append((shour,ehour,tag,lockfile,chunk_tmp,proc))
+
+        #wait for each chunk and post-process it independently as it finishes
+        for shour,ehour,tag,lockfile,chunk_tmp,proc in procs:
+            stdout,stderr=proc.communicate()
+            logger.info(stdout)
+            logger.error(stderr)
+
+            #match on the requested hour only: TROPoe names the file after the actual first
+            #sample time (e.g. '...000005.nc'), not the exact requested boundary
+            matches=glob.glob(os.path.join(config['output_dir'][site],f'*{date}.{shour:02d}????.nc'))
+            if len(matches)==1:
+                file_tropoe=matches[0]
+
+                #record the chunk as processed against the fingerprint it was built from
+                write_processed(tag,fingerprints[(shour,ehour)])
+
+                logger.info('Succesfully created retrieval '+file_tropoe)
+
+                #plot maps
+                Data=xr.open_dataset(file_tropoe)
+                trp.plot_temp_wvmr(Data,config,file_tropoe,no_cbh,no_met)
+                plt.savefig(file_tropoe.replace('.nc','_T_r.png'))
+                plt.close()
+            else:
+                logger.info('Skipping chunk '+tag+': no output produced.')
+
+            if os.path.exists(chunk_tmp):
+                shutil.rmtree(chunk_tmp)
+            if os.path.exists(lockfile):
+                os.remove(lockfile)
+
+        utl.close_logger(logger, handler)
+
+        #clear the shared temp files only once every chunk of this day is accounted for and no
+        #other instance still has a chunk of this date locked (our own locks are already released above)
+        processed_now=read_processed()
+        still_active=glob.glob(os.path.join(lockdir,date+'.??0000.lock'))
+        if all(processed_now.get(tags[c])==fp for c in chunks) and len(still_active)==0 and os.path.exists(tmpdir):
+            shutil.rmtree(tmpdir)
+    finally:
+        #release any chunk lock not already released above (e.g. early-return paths)
+        for shour,ehour,tag,lockfile in locked:
+            if os.path.exists(lockfile):
+                os.remove(lockfile)
 
 #%% Initialization
 
