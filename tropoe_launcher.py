@@ -40,29 +40,18 @@ else:
     source_config=os.path.join(cd,'configs',sys.argv[5])
     
 #%% Fuctions
-def chunk_fingerprints(channel_irs_raw,date,chunks):
+def day_fingerprint(channel_irs_raw,date):
     '''
-    Count and latest mtime of raw IRS files falling in each chunk's [shour,ehour) window,
-    so a chunk whose trailing raw files are still arriving can be told apart from one that is
-    genuinely done. Raw filenames are '<prefix>.<date>.<HHMMSS>.<...>.cdf' (see
-    tropoe_utils.copy_rename_assist_raw). Sites that don't ingest from a raw channel (their data
-    is fully downloaded up front) get a constant sentinel fingerprint, i.e. "processed" once seen.
+    Total size of the raw IRS files for this date. There is one raw file per stream per day, not
+    one per hour, and its name keeps the time it was first created (e.g. '...000005.cdf') no
+    matter how much it grows afterwards, so completeness can't be tracked per chunk from the
+    filename. Instead, any growth in size since a chunk was last processed reprocesses every
+    chunk of that day. Sites that don't ingest from a raw channel (their data is fully downloaded
+    up front) get a constant sentinel fingerprint, i.e. "processed" once seen.
     '''
     if 'raw' not in channel_irs_raw:
-        return {c:(-1,-1) for c in chunks}
-
-    buckets={c:[] for c in chunks}
-    for f in glob.glob(os.path.join(cd,'data',channel_irs_raw,'*'+date+'*cdf')):
-        parts=os.path.basename(f).split('.')
-        if len(parts)<3 or parts[1]!=date or len(parts[2])<2:
-            continue
-        hh=int(parts[2][:2])
-        for shour,ehour in chunks:
-            if shour<=hh<ehour:
-                buckets[(shour,ehour)].append(f)
-                break
-
-    return {c:(len(flist), max((os.path.getmtime(f) for f in flist), default=0.0)) for c,flist in buckets.items()}
+        return -1
+    return sum(os.path.getsize(f) for f in glob.glob(os.path.join(cd,'data',channel_irs_raw,'*'+date+'*cdf')))
 
 def process_day(date,config,option):
 
@@ -93,9 +82,9 @@ def process_day(date,config,option):
     chunks=[(h,h+hours_process) for h in range(0,24,hours_process)]
     tags={(shour,ehour):f'{date}.{shour:02d}0000' for shour,ehour in chunks}
 
-    #a chunk is recorded as "tag,file_count,latest_mtime" instead of a bare tag, so it is only
-    #trusted as done once its raw-file fingerprint stops changing between runs (no new/updated
-    #files arrived since it was last processed), rather than forever once it succeeds once
+    #a chunk is recorded as "tag,day_fingerprint" instead of a bare tag, so it is only trusted as
+    #done once the day's raw file stops growing between runs, rather than forever once it succeeds
+    #once. All chunks of a day share the same fingerprint, so a size change reprocesses the whole day.
     processed_file=os.path.join(cd,'data/processed-{site}.txt'.format(site=site))
     def read_processed():
         result={}
@@ -103,8 +92,8 @@ def process_day(date,config,option):
             with open(processed_file) as fid:
                 for line in fid:
                     parts=line.strip().split(',')
-                    if len(parts)==3:
-                        result[parts[0]]=(int(parts[1]),float(parts[2]))
+                    if len(parts)==2:
+                        result[parts[0]]=int(parts[1])
         return result
 
     def write_processed(tag,fingerprint):
@@ -112,14 +101,15 @@ def process_day(date,config,option):
         processed[tag]=fingerprint
         with open(processed_file,'w') as fid:
             for t in sorted(processed):
-                fid.write(f'{t},{processed[t][0]},{processed[t][1]}\n')
+                fid.write(f'{t},{processed[t]}\n')
 
-    #fingerprint every chunk once up front; both the skip-check and the post-run record use this
+    #fingerprint the day once up front; both the skip-check and the post-run record use this
     #same snapshot, so a chunk is marked done against the input it was actually built from
-    fingerprints=chunk_fingerprints(channel_irs_raw,date,chunks)
+    fp=day_fingerprint(channel_irs_raw,date)
+    fingerprints={c:fp for c in chunks}
     processed=read_processed()
 
-    if all(processed.get(tags[c])==fingerprints[c] for c in chunks):
+    if all(processed.get(tags[c])==fp for c in chunks):
         return
 
     #try to acquire a lock for the shared, day-level input build so two concurrent
