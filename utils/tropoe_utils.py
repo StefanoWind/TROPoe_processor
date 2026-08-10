@@ -635,7 +635,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
         plt.legend()
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
-    ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+    ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
     ax.set_ylim(0, np.max(height)+10)
     ax.grid()
     ax.tick_params(axis='both', which='major')
@@ -662,7 +662,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
    
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
-    ax.set_xlim([datetime.strptime(date,'%Y%m%d'),datetime.strptime(date,'%Y%m%d')+timedelta(days=1)])
+    ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
     ax.set_ylim(0, np.max(height)+10)
     ax.grid()
     ax.tick_params(axis='both', which='major')
