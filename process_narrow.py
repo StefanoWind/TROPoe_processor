@@ -131,11 +131,7 @@ def process_day(date,config,option):
     no_cbh=False
     no_met=False
     tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
-    
-    #build inputs
     try:
-        
-        #check if there are new chunks to be processed
         pending=[c for c in chunks if processed.get(tags[c])!=fingerprints[c]]
         if len(pending)==0:
             return
