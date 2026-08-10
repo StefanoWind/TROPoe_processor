@@ -610,17 +610,24 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     import os
     
     Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
-
+    
+    #qc tropoe data
+    Data['cbh'][(Data['lwp']<config['min_lwp']).compute()]=Data['height'].max()#remove clouds with low lwp
+    
+    qc_gamma=Data['gamma']<=config['max_gamma']
+    qc_rmsa=Data['rmsa']<=config['max_rmsa']
+    qc_cbh=Data['height']<Data['cbh']
+    
     time=np.array(Data['time'])
     date=str(Data.time.values[0])[:10]
     height0=np.array(Data['height'][:])*1000
     sel_z=height0<config['max_z']
     height=height0[sel_z]
 
-    T=np.array(Data['temperature'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[C]
-    r= np.array(Data['waterVapor'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:,sel_z])#[g/Kg]
-    cbh=np.array(Data['cbh'].where(Data['gamma']<=config['max_gamma']).where(Data['rmsa']<=config['max_rmsa'])[:])*1000#[m]
-    lwp=np.array(Data['lwp'][:])
+    T=np.array(Data['temperature'].where(qc_gamma*qc_rmsa*qc_cbh))[:,sel_z]#[C]
+    r= np.array(Data['waterVapor'].where(qc_gamma*qc_rmsa*qc_cbh))[:,sel_z]#[g/Kg]
+    cbh=np.array(Data['cbh'].where(qc_gamma*qc_rmsa))*1000#[m]
+    lwp=np.array(Data['lwp'].where(qc_gamma*qc_rmsa))
     cbh_sel=cbh.copy()
     cbh_sel[lwp<config['min_lwp']]=np.nan
     
@@ -632,12 +639,12 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
    
     plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
-                     color='b',alpha=0.25)
-    plt.plot(time,Data.sbLCL*1000,'-b',label='Surface-based LCL')
+                     color='c',alpha=0.25)
+    plt.plot(time,Data.sbLCL*1000,'-c',label='Surface-based LCL')
     
     plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
-                     color='b',alpha=0.25)
-    plt.plot(time,Data.mlLCL*1000,'--',color='b',label='ML-based LCL')
+                     color='c',alpha=0.25)
+    plt.plot(time,Data.mlLCL*1000,'--',color='c',label='ML-based LCL')
     
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
