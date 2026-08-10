@@ -611,7 +611,6 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     
     Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
 
-    
     time=np.array(Data['time'])
     date=str(Data.time.values[0])[:10]
     height0=np.array(Data['height'][:])*1000
@@ -630,9 +629,16 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax=plt.subplot(2,1,1)
     CS=plt.contourf(time,height,T.T,np.round(np.arange(np.nanpercentile(T, 5),np.nanpercentile(T, 95),1)),cmap='hot',extend='both')
     plt.ylim([0,config['max_z']])
-    plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
-    if np.sum(~np.isnan(cbh_sel))>0:
-        plt.legend()
+    plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
+   
+    plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
+                     color='b',alpha=0.25)
+    plt.plot(time,Data.sbLCL*1000,'-b',label='Surface-based LCL')
+    
+    plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
+                     color='b',alpha=0.25)
+    plt.plot(time,Data.mlLCL*1000,'--',color='b',label='ML-based LCL')
+    
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
@@ -656,10 +662,16 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax=plt.subplot(2,1,2)
     CS=plt.contourf(time,height,r.T,np.round(np.arange(0,np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
     plt.ylim([0,config['max_z']])
-    plt.plot(time,cbh_sel,'.m',label='Cloud base height',markersize=10)
-    if np.sum(~np.isnan(cbh_sel))>0:
-        plt.legend()
+    plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
    
+    plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
+                     color='orange',alpha=0.25)
+    plt.plot(time,Data.sbLCL*1000,color='orange',label='Surface-based LCL')
+    
+    plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
+                     color='orange',alpha=0.25)
+    plt.plot(time,Data.mlLCL*1000,'--',color='orange',label='ML-based LCL')
+    
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
@@ -677,4 +689,69 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size = '2%', pad=0.65)
     cb = fig.colorbar(CS, cax=cax, orientation='vertical')
-    cb.set_label(r'Mixing ratio [g Kg$^{-1}$]')
+    cb.set_label(r'Mixing ratio [g kg$^{-1}$]')
+    
+    return fig
+    
+def plot_cape_cin(Data,config,filename,no_cbh=False,no_met=False):
+   
+    '''
+    Plot time series of CAPE and CIN
+    '''
+    import numpy as np
+    from matplotlib import pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib.dates as mdates
+    from datetime import datetime
+    from datetime import timedelta
+    import os
+    
+    Data=Data.resample(time=str(np.median(np.diff(Data['time']))/np.timedelta64(1,'m'))+'min').nearest(tolerance='1min')
+
+    #time info
+    time=np.array(Data['time'])
+    date=str(Data.time.values[0])[:10]
+    
+    plt.close('all')
+    fig=plt.figure(figsize=(18,10))
+    
+    #CAPE plot
+    ax=plt.subplot(2,1,1)
+    plt.fill_between(time, (Data.sbCAPE-Data.sigma_sbCAPE),(Data.sbCAPE+Data.sigma_sbCAPE),
+                     color='r',alpha=0.25)
+    plt.plot(time,Data.sbCAPE,color='r',label='Surface-based')
+    
+    plt.fill_between(time, (Data.mlCAPE-Data.sigma_mlCAPE),(Data.sbCAPE+Data.sigma_mlCAPE),
+                     color='orange',alpha=0.25)
+    plt.plot(time,Data.mlCAPE,'--',color='orange',label='ML-based')
+
+    ax.set_xlabel('Time (UTC)')
+    ax.set_ylabel(r'CAPE [J kg$^{-1}$]')
+    ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
+    ax.grid()
+    ax.tick_params(axis='both', which='major')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_title('TROPoe convection indices at ' + Data.attrs['Site'] + ' on '+date+'\n File(s): '+os.path.basename(filename), x=0.45)
+    plt.legend()
+    
+    #CIN plot
+    ax=plt.subplot(2,1,2)
+    plt.fill_between(time, (Data.sbCIN-Data.sigma_sbCIN),(Data.sbCIN+Data.sigma_sbCIN),
+                     color='b',alpha=0.25)
+    plt.plot(time,Data.sbCIN,color='b',label='Surface-based')
+    
+    plt.fill_between(time, (Data.mlCIN-Data.sigma_mlCIN),(Data.sbCIN+Data.sigma_mlCIN),
+                     color='c',alpha=0.25)
+    plt.plot(time,Data.mlCIN,'--',color='c',label='ML-based')
+    
+    ax.set_xlabel('Time (UTC)')
+    ax.set_ylabel(r'CIN [J kg$^{-1}$]')
+    ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
+    ax.grid()
+    ax.tick_params(axis='both', which='major')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.set_title('TROPoe convection indices at ' + Data.attrs['Site'] + ' on '+date+'\n File(s): '+os.path.basename(filename), x=0.45)
+    plt.legend()
+    
+    plt.tight_layout()
+    return fig

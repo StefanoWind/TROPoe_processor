@@ -55,9 +55,14 @@ else:
         os.makedirs(os.path.dirname(save_name),exist_ok=True)
         
         Data.to_netcdf(save_name)
-        trp.plot_temp_wvmr(Data,config,f'{len(day_files)} chunks on {date}')
-        plt.savefig(save_name.replace('.nc','_T_r.png'))
+        fig=trp.plot_temp_wvmr(Data,config,f'{len(day_files)} chunk(s)')
+        fig.savefig(save_name.replace('.nc','_T_r.png'))
         plt.close()
+        
+        fig=trp.plot_cape_cin(Data,config,f'{len(day_files)} chunk(s)')
+        fig.savefig(save_name.replace('.nc','_CAPE_CIN.png'))
+        plt.close()
+        
 
         for ds in datasets:
             ds.close()
