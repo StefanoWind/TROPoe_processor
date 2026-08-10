@@ -640,7 +640,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax.grid()
     ax.tick_params(axis='both', which='major')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+date+'\n File: '+os.path.basename(filename), x=0.45)
+    ax.set_title('TROPoe retrieval at ' + Data.attrs['Site'] + ' on '+date+'\n File(s): '+os.path.basename(filename), x=0.45)
     ax.set_facecolor((0.9,0.9,0.9))
     
     if no_cbh:

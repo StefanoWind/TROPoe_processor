@@ -51,10 +51,11 @@ else:
         Data=xr.concat(datasets,dim='time',data_vars='minimal',coords='minimal',compat='override').sortby('time')
         Data=Data.drop_duplicates('time',keep='first')
 
-        save_name=f'{".".join(day_files[0].split(".")[:-2])}.000000_merged.nc'
+        save_name=f'{".".join(day_files[0].split(".")[:-2]).replace("c0","c1")}.000000.nc'
+        os.makedirs(os.path.dirname(save_name),exist_ok=True)
         
         Data.to_netcdf(save_name)
-        trp.plot_temp_wvmr(Data,config,day_files[-1].split())
+        trp.plot_temp_wvmr(Data,config,f'{len(day_files)} chunks on {date}')
         plt.savefig(save_name.replace('.nc','_T_r.png'))
         plt.close()
 
