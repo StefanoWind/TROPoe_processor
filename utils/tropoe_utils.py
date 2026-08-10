@@ -635,7 +635,6 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     fig=plt.figure(figsize=(18,10))
     ax=plt.subplot(2,1,1)
     CS=plt.contourf(time,height,T.T,np.round(np.arange(np.nanpercentile(T, 5),np.nanpercentile(T, 95),1)),cmap='hot',extend='both')
-    plt.ylim([0,config['max_z']])
     plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
    
     plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
@@ -649,7 +648,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
-    ax.set_ylim(0, np.max(height)+10)
+    ax.set_ylim(0, config['max_z']+10)
     ax.grid()
     ax.tick_params(axis='both', which='major')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
@@ -668,7 +667,6 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     
     ax=plt.subplot(2,1,2)
     CS=plt.contourf(time,height,r.T,np.round(np.arange(0,np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
-    plt.ylim([0,config['max_z']])
     plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
    
     plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
@@ -682,7 +680,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
-    ax.set_ylim(0, np.max(height)+10)
+    ax.set_ylim(0, config['max_z']+10)
     ax.grid()
     ax.tick_params(axis='both', which='major')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
