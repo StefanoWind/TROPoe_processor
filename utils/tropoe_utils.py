@@ -645,7 +645,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
                      color='c',alpha=0.25)
     plt.plot(time,Data.mlLCL*1000,'--',color='c',label='ML-based LCL')
     
-    ax.set_xlabel('Time (UTC)')
+    plt.legend()
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
     ax.set_ylim(0, config['max_z']+10)
@@ -677,6 +677,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
                      color='orange',alpha=0.25)
     plt.plot(time,Data.mlLCL*1000,'--',color='orange',label='ML-based LCL')
     
+    plt.legend()
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
@@ -705,7 +706,6 @@ def plot_cape_cin(Data,config,filename,no_cbh=False,no_met=False):
     '''
     import numpy as np
     from matplotlib import pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     import matplotlib.dates as mdates
     from datetime import datetime
     from datetime import timedelta
@@ -730,7 +730,6 @@ def plot_cape_cin(Data,config,filename,no_cbh=False,no_met=False):
                      color='orange',alpha=0.25)
     plt.plot(time,Data.mlCAPE,'--',color='orange',label='ML-based')
 
-    ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'CAPE [J kg$^{-1}$]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
     ax.grid()
@@ -755,7 +754,6 @@ def plot_cape_cin(Data,config,filename,no_cbh=False,no_met=False):
     ax.grid()
     ax.tick_params(axis='both', which='major')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    ax.set_title('TROPoe convection indices at ' + Data.attrs['Site'] + ' on '+date+'\n File(s): '+os.path.basename(filename), x=0.45)
     plt.legend()
     
     plt.tight_layout()
