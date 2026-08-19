@@ -227,6 +227,8 @@ def compute_cbh_halo(channel,date,config,logger):
     for i,f in enumerate(files):
         #the most recent file may have been partially written when last processed, so always redo it
         compute_cbh_halo_file(f,config,logger,force=(i==len(files)-1))
+        if config['delete_cbh_file']:
+            os.remove(f)
 
     files_cbh=sorted(glob.glob(os.path.join(cd,'data',channel,'*'+date+'*cbh.nc')))
     tnum_all=[]
