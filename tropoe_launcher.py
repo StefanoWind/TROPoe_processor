@@ -73,7 +73,11 @@ def process_day(date,config,option):
     #use monthly prior if provided
     if prior_file == "":
         month=date[4:6]
-        prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+        if config['add_data_path']:
+            prior_file=f'data/prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+        else:
+            prior_file=f'prior/Xa_Sa_datafile.{site_prior}.55_levels.month_{month}.cdf'
+            
 
     #split the day into retrieval chunks; full days are kept whole when days are already run in parallel
     hours_process=24 if option=='parallel' else config.get('hours_process',24)
@@ -220,7 +224,10 @@ def process_day(date,config,option):
     try:
         #launch every claimed chunk at once: Popen does not block, unlike subprocess.run,
         #so all containers start together instead of running one after another
-        vip_file=f'/data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+        if config['add_data_path']:
+            vip_file=f'data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
+        else:
+            vip_file=f'/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
         tropoe_shell=config['tropoe_shell']
         procs=[]
         for shour,ehour,tag,lockfile in locked:
