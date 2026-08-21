@@ -131,7 +131,7 @@ if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
 
 #get cbh data
 if channel_cbh !="":
-    n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*'+ext_cbh+'*nc')))
+    n_files_cbh= len(glob.glob(os.path.join(cd,'data',channel_cbh,'*'+date+'*'+ext_cbh+'*')))
     if n_files_cbh==0:
         logger.error('No cbh data found.')
         if config['allow_no_cbh']==False:
