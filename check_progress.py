@@ -24,7 +24,7 @@ def progress_bar(progress, total, length=40):
     sys.stdout.flush()
     
 #%% Initialization
-files=glob.glob(os.path.join(folder,'*nc'))
+files=sorted(glob.glob(os.path.join(folder,'*nc')))
 
 
 #%% Main
