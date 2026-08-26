@@ -32,7 +32,8 @@ for f in files:
     with xr.open_dataset(f) as Data:
         print(os.path.basename(f))
         progress=np.append(progress,len(Data.time)/(np.timedelta64(1,'D')/np.nanmedian(np.diff(Data.time))))
-        progress_bar(progress[-1],1)
+        if ~np.isnan(progress[-1]):
+            progress_bar(progress[-1],1)
         print()
 print(f'{np.sum(progress>0.99)} files completed. {np.nanmean(progress)*100:.1f}% mean progress.')
     
