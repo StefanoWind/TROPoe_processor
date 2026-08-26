@@ -26,12 +26,13 @@ def progress_bar(progress, total, length=40):
 #%% Initialization
 files=sorted(glob.glob(os.path.join(folder,'*nc')))
 progress=[]
+eps=np.timedelta64(1,'s')
 
 #%% Main
 for f in files:
     with xr.open_dataset(f) as Data:
         print(os.path.basename(f))
-        progress=np.append(progress,len(Data.time)*np.nanmedian(np.diff(Data.time))/(np.timedelta64(1,'D')+10**-10))
+        progress=np.append(progress,len(Data.time)*np.nanmedian(np.diff(Data.time))/(np.timedelta64(1,'D')+eps))
         if ~np.isnan(progress[-1]):
             progress_bar(progress[-1],1)
         print()
