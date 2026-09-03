@@ -30,20 +30,19 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='sa_rt'
-    date='20260803'
-    source_config=os.path.join(cd,'configs/config_anvil.yaml')
-    os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
+    site='caco_lid'
+    date='20250406'
+    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:
     site=sys.argv[1]
     date=sys.argv[2]
     source_config=sys.argv[3]
-    tmpdir=sys.argv[4]
 
 #%% Initialization
 with open(source_config, 'r') as fid:
     config = yaml.safe_load(fid)
 
+os.makedirs(os.path.join(cd,'log',site),exist_ok=True)
 logger,handler=utl.create_logger(os.path.join(cd,'log',site,date+'.log'))
 logger = logging.getLogger()
 logger.info('Building TROPoe inputs for '+date+' at '+site)
@@ -73,9 +72,9 @@ else:
     sumassistdir=os.path.join(tmpdir,'sum')
     nfchassistdir=os.path.join(tmpdir,'nfc')
 
-#clear old temp files
-if os.path.exists(tmpdir):
-    shutil.rmtree(tmpdir)
+# #clear old temp files
+# if os.path.exists(tmpdir):
+#     shutil.rmtree(tmpdir)
     
 os.makedirs(tmpdir,exist_ok=True)
 
@@ -106,20 +105,20 @@ if config['override_hatch']:
     trp.overrride_hatch_flag(glob.glob(os.path.join(chassistdir,'*cdf')),logger=logger)
     trp.overrride_hatch_flag(glob.glob(os.path.join(sumassistdir,'*cdf')),logger=logger)
     
-#pca filter
-if config['N_days_nfc'][site]>1:
-    logger.info('Running PCA filter')
-    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
+# #pca filter
+# if config['N_days_nfc'][site]>1:
+#     logger.info('Running PCA filter')
+#     command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --create {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+#     result = subprocess.run(command, shell=True, text=True,capture_output=True)
+#     logger.info(result.stdout)
+#     logger.error(result.stderr)
     
-    command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
-    result = subprocess.run(command, shell=True, text=True,capture_output=True)
-    logger.info(result.stdout)
-    logger.error(result.stderr)
-else:
-    logger.info('PCA filter skipped')
+#     command=config['path_python']+f' {os.path.join(cd,"utils","run_irs_nf.py")} --apply {sdate} {edate} {chassistdir} {sumassistdir} {nfchassistdir} "assist"'
+#     result = subprocess.run(command, shell=True, text=True,capture_output=True)
+#     logger.info(result.stdout)
+#     logger.error(result.stderr)
+# else:
+#     logger.info('PCA filter skipped')
     
 #remove atmospheric pressure that causes error
 if len(glob.glob(os.path.join(nfchassistdir,'*'+date+'*cdf')))==1:
@@ -139,7 +138,7 @@ if channel_cbh !="":
     else:
         if 'lidar' in channel_cbh:
             logger.info('Running cbh retrieval from lidar data')
-            Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,logger)
+            Output_cbh=trp.compute_cbh_halo(channel_cbh,date,config,site,logger)
 
         elif 'ceil' in channel_cbh:
             logger.info('Extracting cbh from ceilometer data')

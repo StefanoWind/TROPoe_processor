@@ -43,7 +43,10 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
         figname_save=file.replace('.nc','_cbh.png')
        
     #load data
-    Data=xr.open_dataset(file).rename({'wind_speed':'radial_wind_speed'})
+    Data=xr.open_dataset(file)
+    
+    if 'wind_speed' in Data.data_vars:
+        Data=Data.rename({'wind_speed':'radial_wind_speed'})
     
     if 'overlapped' in Data.attrs['Scan type']:
         range_name='distance_overlapped'
@@ -51,16 +54,6 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
         range_name='distance'
     Data=Data.where(Data[range_name]<rmax,drop=True).where(Data[range_name]>rmin,drop=True).where(Data['elevation']+ang_tol>=min_ele,drop=True)
  
-    azi=utl.round(Data['azimuth'].values,ang_tol)%360
-    ele=utl.round(Data['elevation'].values,ang_tol)
-   
-    #count beams
-    azi_ele=np.array([azi[:,0],ele[:,0]])
-    Nb=np.shape(np.unique(azi_ele,axis=1))[1]
-    reps=int(len(Data.time)/Nb)
-    
-    #drop incomplete scans
-    Data=Data.isel(time=slice(0,reps*Nb))
     rws0=Data['radial_wind_speed'].values
     z0=(Data[range_name]*utl.sind(Data['elevation'])).values.T
     
@@ -98,49 +91,34 @@ def compute_cbh(file,utl,averages=60,signal='beta',plot=True):
     z=utl.hstack(np.zeros((Nt,1)),z0)
     f=utl.hstack(np.zeros((Nt,1)),f0)
     rws=utl.hstack(np.zeros((Nt,1)),rws0)
-    Nr=len(z[0,:])
 
-    #reshape into rep x beam x range
-    if reps>=averages:
-        tnum_3d=tnum.reshape(reps,Nb)
-        f_3d=f.reshape(reps,Nb,Nr)
-        
-        #time average
-        duration=np.nanmedian(np.diff(tnum_3d,axis=0))
-        bin_reps=np.arange(0,reps+1,int(averages/duration))
-        tnum_avg0=[]
-        f_avg=[]
-        for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
-            sel=np.arange(rep1,rep2)
-            tnum_avg0=np.append(tnum_avg0,np.nanmean(tnum_3d[sel,:],axis=0))
-            f_avg=   utl.vstack(f_avg,    np.nanmean(f_3d[sel,:,:],axis=0))
-    else:
-        f_avg=f.copy()
-        tnum_avg0=tnum.copy()
-        
+    #time-window average across all beams, regardless of direction
+    t_edges=np.arange(tnum.min(),tnum.max()+averages,averages)
+    tnum_avg=[]
+    z_avg=[]
+    f_avg=[]
+    for t1,t2 in zip(t_edges[:-1],t_edges[1:]):
+        sel=(tnum>=t1)&(tnum<t2)
+        if not sel.any():
+            continue
+        tnum_avg=np.append(tnum_avg,np.nanmean(tnum[sel]))
+        z_avg=  utl.vstack(z_avg,  np.nanmean(z[sel,:],axis=0))
+        f_avg=  utl.vstack(f_avg,  np.nanmean(f[sel,:],axis=0))
+
     #gradients
     df_dz=np.gradient(f_avg,axis=1)
-    
+
     #CBH estimation [Newsom et al. 2016]
-    cbh=np.zeros(len(f_avg[:,0]))+np.nan
+    cbh_avg=np.zeros(len(f_avg[:,0]))+np.nan
     for i in range(len(f_avg[:,0])):
-        
+
         jmin=np.argmin(df_dz[i,:])
         jmax=np.argmax(df_dz[i,:])
-        dz=z[i,jmin]-z[i,jmax]
+        dz=z_avg[i,jmin]-z_avg[i,jmax]
         if dz>=min_dz and dz<=max_dz and df_dz[i,jmin]<-tol and df_dz[i,jmax]>tol:
-            j=np.argmax(f[i,jmax:jmin])
-            cbh[i]=z[i,jmax+j]
-            
-    #scan average
-    bin_reps=np.arange(0,len(cbh)+1,Nb)
-    tnum_avg=[]
-    cbh_avg=[]
-    for rep1,rep2 in zip(bin_reps[:-1],bin_reps[1:]):
-        sel=np.arange(rep1,rep2)
-        tnum_avg=np.append(tnum_avg,np.nanmean(tnum_avg0[sel]))
-        cbh_avg= np.append(cbh_avg, np.nanmean(cbh[sel]))
-    
+            j=np.argmax(f_avg[i,jmax:jmin])
+            cbh_avg[i]=z_avg[i,jmax+j]
+
     time_avg=tnum_avg.astype('datetime64[s]')
     
     #plots

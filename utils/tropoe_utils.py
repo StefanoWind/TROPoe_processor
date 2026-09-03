@@ -176,7 +176,7 @@ def format_lidar(channel,date,config_path):
         lproc = lg.Format(f, config=config_path, verbose=False,logfile=None)
         lproc.process_scan(replace=False, save_file=True,save_path=save_path,make_figures=False)
     
-def compute_cbh_halo_file(f,config,logger,force=False):
+def compute_cbh_halo_file(f,config,site,logger,force=False):
     '''
     Compute CBH for a single lidar file and cache it next to the source file,
     so re-running a day only (re)computes CBH for files that don't have it yet.
@@ -195,7 +195,7 @@ def compute_cbh_halo_file(f,config,logger,force=False):
         return f_cbh
 
     try:
-        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,averages=config['cbh_averages'],plot=config['detailed_plots'])
+        time_cbh,cbh_lidar=cbh.compute_cbh(f,utl,averages=config['cbh_averages'][site],plot=config['detailed_plots'])
         Output=xr.Dataset()
         Output['cbh']=xr.DataArray(data=np.float32(cbh_lidar),
                                     coords={'time':time_cbh},
@@ -207,7 +207,7 @@ def compute_cbh_halo_file(f,config,logger,force=False):
 
     return f_cbh
 
-def compute_cbh_halo(channel,date,config,logger):
+def compute_cbh_halo(channel,date,config,site,logger):
     '''
     Generate daily CBH time series for TROPoe by combining per-file CBH
     retrievals, computing only the ones missing (new real-time arrivals)
@@ -226,7 +226,7 @@ def compute_cbh_halo(channel,date,config,logger):
     files=[f for f in files if not f.endswith('.cbh.nc')]
     for i,f in enumerate(files):
         #the most recent file may have been partially written when last processed, so always redo it
-        compute_cbh_halo_file(f,config,logger,force=(i==len(files)-1))
+        compute_cbh_halo_file(f,config,site,logger,force=(i==len(files)-1))
         if config['delete_cbh_file']:
             os.remove(f)
 
