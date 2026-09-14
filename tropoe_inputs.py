@@ -30,8 +30,8 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='caco_lid'
-    date='20250406'
+    site='caco_ceil'
+    date='20250516'
     source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:
     site=sys.argv[1]
@@ -84,6 +84,17 @@ with open(os.path.join(cd,'configs',f'vip_{site}.txt'), "r") as f:
 vip=vip.replace('{date}',date)
 with open(os.path.join(tmpdir,f'vip_{site}.{date}.txt'), "w") as f:
     f.write(vip)
+    
+#read vip file
+vip_dict={}
+for l in vip.split('\n'):
+    try:
+        l_trim=l.split('#')[0].replace('\t','')
+        key=l_trim.split('=')[0].strip()
+        val=l_trim.split('=')[1].strip()
+        vip_dict[key]=val
+    except:
+        pass
          
 #check file existence
 n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf')))
@@ -249,6 +260,6 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     plt.tight_layout()
     plt.xlabel('Time (UTC)')
 
-name_save='.'.join(os.path.basename(file_ch1).replace('.00.','.'+config['data_level_output']+'.').split('.')[:-2])+'_tropoe_inputs.png'
+name_save=vip_dict['output_rootname']+f'.{date}.{000000}_inputs.png'
 os.makedirs(config['output_dir'][site],exist_ok=True)
 plt.savefig(os.path.join(config['output_dir'][site],name_save))

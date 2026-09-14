@@ -623,7 +623,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     time=np.array(Data['time'])
     date=str(Data.time.values[0])[:10]
     height0=np.array(Data['height'][:])*1000
-    sel_z=height0<config['max_z']
+    sel_z=height0<config['max_z']+200
     height=height0[sel_z]
 
     T=np.array(Data['temperature'].where(qc_gamma*qc_rmsa*qc_cbh))[:,sel_z]#[C]
@@ -638,15 +638,16 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax=plt.subplot(2,1,1)
     CS=plt.contourf(time,height,T.T,np.round(np.arange(np.nanpercentile(T, 5),np.nanpercentile(T, 95),1)),cmap='hot',extend='both')
     plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
-   
-    plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
-                     color='c',alpha=0.25)
-    plt.plot(time,Data.sbLCL*1000,'-c',label='Surface-based LCL')
-    
-    plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
-                     color='c',alpha=0.25)
-    plt.plot(time,Data.mlLCL*1000,'--',color='c',label='ML-based LCL')
-    
+
+    if config['plot_lcl']:
+        plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
+                         color='c',alpha=0.25)
+        plt.plot(time,Data.sbLCL*1000,'-c',label='Surface-based LCL')
+
+        plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
+                         color='c',alpha=0.25)
+        plt.plot(time,Data.mlLCL*1000,'--',color='c',label='ML-based LCL')
+
     plt.legend()
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
@@ -670,15 +671,16 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
     ax=plt.subplot(2,1,2)
     CS=plt.contourf(time,height,r.T,np.round(np.arange(0,np.nanpercentile(r, 95),0.25),2),cmap='GnBu',extend='both')
     plt.scatter(time,cbh_sel,s=40,c='w',edgecolor='k',label='Cloud base height')
-   
-    plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
-                     color='orange',alpha=0.25)
-    plt.plot(time,Data.sbLCL*1000,color='orange',label='Surface-based LCL')
-    
-    plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
-                     color='orange',alpha=0.25)
-    plt.plot(time,Data.mlLCL*1000,'--',color='orange',label='ML-based LCL')
-    
+
+    if config['plot_lcl']:
+        plt.fill_between(time, (Data.sbLCL-Data.sigma_sbLCL)*1000,(Data.sbLCL+Data.sigma_sbLCL)*1000,
+                         color='orange',alpha=0.25)
+        plt.plot(time,Data.sbLCL*1000,color='orange',label='Surface-based LCL')
+
+        plt.fill_between(time, (Data.mlLCL-Data.sigma_mlLCL)*1000,(Data.mlLCL+Data.sigma_mlLCL)*1000,
+                         color='orange',alpha=0.25)
+        plt.plot(time,Data.mlLCL*1000,'--',color='orange',label='ML-based LCL')
+
     plt.legend()
     ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')

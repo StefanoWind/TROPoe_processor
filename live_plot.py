@@ -20,14 +20,17 @@ matplotlib.rcParams['savefig.dpi'] = 300
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='sa_rt'
-    source_config=os.path.join(cd,'configs/config_anvil.yaml')
+    site='mvco'
+    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
+    plot_T_r=True
+    plot_CIN=False
 else:
     site=sys.argv[1]
     source_config=sys.argv[2]
 
 with open(source_config,'r') as fid:
     config=yaml.safe_load(fid)
+    
 
 #%% Main
 
