@@ -105,4 +105,16 @@ def sind(x):
     Sine in degrees
     '''
     return np.sin(x/180*np.pi)
+
+def diff_from_median(x,window):
+    '''Deviation of x from the running median over `window` points, centered except at the edges (still `window` points, but shifted so no fewer points are used)'''
+    x=np.asarray(x)
+    n=len(x)
+    half=window//2
+    med=np.zeros(n)
+    windows=np.lib.stride_tricks.sliding_window_view(x,window)
+    med[half:n-half]=np.nanmedian(windows,axis=1)
+    med[:half]=np.nanmedian(x[:window])
+    med[n-half:]=np.nanmedian(x[-window:])
+    return x-med
     

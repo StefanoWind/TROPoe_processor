@@ -87,6 +87,15 @@ def download(channel,time_range,ext1,config,duration=7):
                         },
                         'file_type': 'nc',
                     }
+            
+        elif 'caco.met' in channel:
+            _filter = {
+                        'Dataset': channel,
+                        'date_time': {
+                            'between': time_range_sel
+                        },
+                        'file_type': 'nc',
+                    }
        
         files=a2e.search(_filter)
         a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
@@ -261,7 +270,7 @@ def compute_cbh_halo(channel,date,config,site,logger):
                                          attrs={'description':'First cloud base height','units':'m'})
 
     Output['base_time']=np.int64(basetime)
-    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nlr.gov'
     name_save=channel.split('/')[1][:-2]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
 
@@ -349,6 +358,34 @@ def exctract_met(channel,date,site,config,logger):
                     rh_all=np.append(rh_all,Data['rh'].sel(rhT_sensors=0).values)
                 except Exception as e:
                     logger.error(f+' failed to load: '+str(e))
+                    
+    elif site=='caco_lid' or site=='caco_ceil':
+        
+        #thresholding
+        thresholds={'air_pressure':[900,1040],
+                    'air_temperature':[-15,40],
+                    'relative_humidity':[0,100]}
+        window=7#[#] points in despiking median window
+        
+        #max MAD
+        max_mad={'air_pressure':2,#[hPa]
+                  'air_temperature':2,#[C]
+                  'relative_humidity':10}#[%]
+        
+        Data=xr.open_mfdataset(files).compute()
+        
+        for v in thresholds:
+            Data[f'{v}_mad']=np.abs(xr.DataArray(utl.diff_from_median(Data[v].values,window),
+                                                 coords={'time':Data.time.values}))
+            
+            Data[f'{v}_qc']=Data[v].where(Data[v]>=thresholds[v][0])\
+                                     .where(Data[v]<=thresholds[v][1])\
+                                     .where(Data[f'{v}_mad']<=max_mad[v])
+                                     
+        tnum_all=((Data.time-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s')).values
+        temp_all=Data.air_temperature_qc.values
+        press_all=Data.air_pressure_qc.values
+        rh_all=Data.relative_humidity_qc.values
 
     if len(tnum_all)==0:
         msg='No met data could be loaded for '+date+' at '+site+'.'
@@ -377,7 +414,7 @@ def exctract_met(channel,date,site,config,logger):
                                          coords={'time':np.arange(len(time_offset))},
                                          attrs={'description':'Time since midnight','units':'s'})
     Output['base_time']=np.float64(basetime)
-    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nlr.gov'
     name_save=channel.split('/')[1][:-2]+'sel'+'.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'sel',name_save))
 
@@ -492,7 +529,7 @@ def extract_cbh_ceil(channel,date,config,logger):
                                          attrs={'description':'First cloud base height','units':'m'})
 
     Output['base_time']=np.int64(basetime)
-    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nrel.gov'
+    Output.attrs['comment']='created on '+datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')+' by stefano.letizia@nlr.gov'
     name_save=channel.split('/')[1][:-2]+'ceil.'+utl.datestr(basetime,'%Y%m%d.%H%M%S')+'.nc'
     Output.to_netcdf(os.path.join(cd,'data',channel[:-2]+'cbh',name_save))
     

@@ -28,8 +28,8 @@ plt.close('all')
 
 if len(sys.argv)==1:
     site='caco_lid'
-    sdate='20250406'
-    edate='20250406'
+    sdate='20250311'
+    edate='20250311'
     option='serial'
     source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:

@@ -31,7 +31,7 @@ warnings.filterwarnings('ignore')
 #%% Inputs
 if len(sys.argv)==1:
     site='caco_ceil'
-    date='20250516'
+    date='20250713'
     source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
 else:
     site=sys.argv[1]
@@ -260,6 +260,6 @@ if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'se
     plt.tight_layout()
     plt.xlabel('Time (UTC)')
 
-name_save=vip_dict['output_rootname']+f'.{date}.{000000}_inputs.png'
+name_save=vip_dict['output_rootname']+f'.{date}.000000_inputs.png'
 os.makedirs(config['output_dir'][site],exist_ok=True)
 plt.savefig(os.path.join(config['output_dir'][site],name_save))
