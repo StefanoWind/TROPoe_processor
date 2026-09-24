@@ -43,4 +43,5 @@ for f in files:
     fig=trp.plot_temp_wvmr(Data,config)
     fig.savefig(f.replace('.nc','_T_r.png'))
     plt.close()
+    print(f'{os.path.basename(f)} done.')
     

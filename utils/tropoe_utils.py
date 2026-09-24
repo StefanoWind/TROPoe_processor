@@ -697,6 +697,7 @@ def plot_temp_wvmr(Data,config,filename='',no_cbh=False,no_met=False):
         plt.plot(time,Data.mlLCL*1000,'--',color='c',label='ML-based LCL')
 
     plt.legend()
+    ax.set_xlabel('Time (UTC)')
     ax.set_ylabel(r'$z$ [m.a.g.l.]')
     ax.set_xlim([datetime.strptime(date,'%Y-%m-%d'),datetime.strptime(date,'%Y-%m-%d')+timedelta(days=1)])
     ax.set_ylim(0, config['max_z']+10)

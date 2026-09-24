@@ -27,6 +27,8 @@ if len(sys.argv)==1:
 else:
     site=sys.argv[1]
     source_config=sys.argv[2]
+    plot_T_r=sys.argv[3]
+    plot_CIN=sys.argv[4]
 
 with open(source_config,'r') as fid:
     config=yaml.safe_load(fid)
