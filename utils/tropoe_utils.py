@@ -96,6 +96,9 @@ def download(channel,time_range,ext1,config,duration=7):
                         },
                         'file_type': 'nc',
                     }
+             
+        elif 'noaa_ship.met' in channel:
+           return
        
         files=a2e.search(_filter)
         a2e.download_with_order(_filter, path=os.path.join(cd,'data',channel), replace=False)
