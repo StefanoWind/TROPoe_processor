@@ -39,9 +39,12 @@ dates={}
 for f in files:
 
     Data=xr.open_dataset(f)
-
-    fig=trp.plot_temp_wvmr(Data,config,filename=f)
-    fig.savefig(f.replace('.nc','_T_r.png'))
-    plt.close()
-    print(f'{os.path.basename(f)} done.')
+    
+    try:
+        fig=trp.plot_temp_wvmr(Data,config,filename=f)
+        fig.savefig(f.replace('.nc','_T_r.png'))
+        plt.close()
+        print(f'{os.path.basename(f)} done.')
+    except:
+        print(f'{os.path.basename(f)} could not be completed.')
     
