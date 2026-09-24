@@ -386,7 +386,15 @@ def exctract_met(channel,date,site,config,logger):
         temp_all=Data.air_temperature_qc.values
         press_all=Data.air_pressure_qc.values
         rh_all=Data.relative_humidity_qc.values
-
+        
+    elif site=='noaa_ship':
+        Data=xr.open_mfdataset(files).compute()
+        
+        tnum_all=((Data.time-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s')).values
+        temp_all= Data.tair_10.values
+        press_all=Data.pair_10.values
+        rh_all=   Data.rhair_10.values
+        
     if len(tnum_all)==0:
         msg='No met data could be loaded for '+date+' at '+site+'.'
         logger.error(msg)

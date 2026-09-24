@@ -30,13 +30,15 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='caco_ceil'
-    date='20250713'
+    site='noaa_ship'
+    date='20241210'
     source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
+    test=True
 else:
     site=sys.argv[1]
     date=sys.argv[2]
     source_config=sys.argv[3]
+    test=False
 
 #%% Initialization
 with open(source_config, 'r') as fid:
@@ -101,7 +103,8 @@ n_files_irs= len(glob.glob(os.path.join(cd,'data',channel_irs,'*'+date+'*cha*cdf
 if n_files_irs==0:
     msg='No ASSIST data found for '+date+' at '+site+'. Aborting.'
     logger.error(msg)
-    raise utl.TropoeInputError(msg)
+    if test==False:
+        raise utl.TropoeInputError(msg)
 
 #qc settings
 sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d')
