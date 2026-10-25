@@ -143,6 +143,38 @@ def copy_rename_assist_00(channel,sdate, edate,chassistdir,sumassistdir):
             elif 'summary' in f:
                 shutil.copy(f,os.path.join(sumassistdir,new_name))
 
+def select_nfc_dates(channel,date,n_days,max_gap):
+    '''
+    Select the n_days available dates nearest to date without crossing gaps longer than max_gap days
+    '''
+    import os
+    cd=os.getcwd()
+    import glob
+    import re
+    from datetime import datetime
+
+    dates=set()
+    for f in glob.glob(os.path.join(cd,'data',channel,'*cdf')):
+        for s in re.findall(r'(?<!\d)\d{8}(?!\d)',os.path.basename(f)):
+            try:
+                dates.add(datetime.strptime(s,'%Y%m%d'))
+            except ValueError:
+                pass
+    t0=datetime.strptime(date,'%Y%m%d')
+    dates.add(t0)
+    dates=sorted(dates)
+
+    #restrict to the block around date with no more than max_gap consecutive missing days
+    i1=i2=dates.index(t0)
+    while i1>0 and (dates[i1]-dates[i1-1]).days-1<=max_gap:
+        i1-=1
+    while i2<len(dates)-1 and (dates[i2+1]-dates[i2]).days-1<=max_gap:
+        i2+=1
+    block=dates[i1:i2+1]
+
+    selected=sorted(sorted(block,key=lambda d:(abs((d-t0).days),d))[:n_days])
+    return [datetime.strftime(d,'%Y%m%d') for d in selected]
+
 def copy_rename_assist_raw(channel,date):
     '''
     Rename and copy raw ASSIST summary files
@@ -397,6 +429,14 @@ def exctract_met(channel,date,site,config,logger):
         temp_all= Data.tair_10.values
         press_all=Data.pair_10.values
         rh_all=   Data.rhair_10.values
+        
+    elif site=='sa':
+        Data=xr.open_mfdataset(files).compute()
+        
+        tnum_all=((Data.time-np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s')).values
+        temp_all= Data.temp.values
+        press_all=Data.barometer.values
+        rh_all=   Data.hum.values
         
     if len(tnum_all)==0:
         msg='No met data could be loaded for '+date+' at '+site+'.'

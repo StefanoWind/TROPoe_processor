@@ -30,9 +30,9 @@ warnings.filterwarnings('ignore')
 
 #%% Inputs
 if len(sys.argv)==1:
-    site='noaa_ship'
-    date='20241210'
-    source_config=os.path.join(cd,'configs/config_wfip3_c1.yaml')
+    site='sa'
+    date='20260817'
+    source_config=os.path.join(cd,'configs/config_anvil.yaml')
     test=True
 else:
     site=sys.argv[1]
@@ -56,23 +56,31 @@ channel_irs=config['channel_irs'][site]
 channel_cbh=config['channel_cbh'][site].split('*')[0]
 ext_cbh=config['channel_cbh'][site].split('*')[1]
 
+#select days for noise filter
+if config['N_days_nfc'][site]>1:
+    dates_nfc=trp.select_nfc_dates(channel_irs,date,config['N_days_nfc'][site],config['max_gap_nfc'])
+else:
+    dates_nfc=[date]
+sdate=dates_nfc[0]
+edate=dates_nfc[-1]
+logger.info(f'Days selected for noise filter: {", ".join(dates_nfc)}')
+if len(dates_nfc)<config['N_days_nfc'][site]:
+    logger.warning(f'Only {len(dates_nfc)} of {config["N_days_nfc"][site]} days available for noise filter')
+
 # format raw files
 if 'raw' in channel_irs:
-      trp.copy_rename_assist_raw(channel_irs,date) 
+      for d in dates_nfc:
+          trp.copy_rename_assist_raw(channel_irs,d)
       if 'lidar' in channel_cbh and 'path_config_format' in config:
           trp.format_lidar(channel_cbh,date,config['path_config_format'][site])
           channel_cbh=channel_cbh.replace('raw','a0')
       channel_irs=channel_irs.replace('raw','00')
       
-      tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
-      chassistdir=os.path.join(tmpdir,'ch1_rt')
-      sumassistdir=os.path.join(tmpdir,'sum_rt')
-      nfchassistdir=os.path.join(tmpdir,'ch1_rt')
-else:
-    tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
-    chassistdir=os.path.join(tmpdir,'ch1')
-    sumassistdir=os.path.join(tmpdir,'sum')
-    nfchassistdir=os.path.join(tmpdir,'nfc')
+#define tmp foders
+tmpdir=os.path.join(cd,'data',channel_irs,date+'-tmp')
+chassistdir=os.path.join(tmpdir,'ch1')
+sumassistdir=os.path.join(tmpdir,'sum')
+nfchassistdir=os.path.join(tmpdir,'nfc')
 
 #clear old temp files
 if os.path.exists(tmpdir):
@@ -105,10 +113,6 @@ if n_files_irs==0:
     logger.error(msg)
     if test==False:
         raise utl.TropoeInputError(msg)
-
-#qc settings
-sdate=datetime.strftime(datetime.strptime(date,'%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d')
-edate=date
 
 #pre-conditioning
 trp.copy_rename_assist_00(channel_irs,sdate,edate,chassistdir,sumassistdir)

@@ -313,8 +313,13 @@ while current_date <= datetime.strptime(edate,'%Y%m%d'):
 #download all data
 if not "raw" in config['channel_irs'][site]:
     if config['channel_irs'][site]!="":
-        time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=config['N_days_nfc'][site]-1),'%Y%m%d%H%M%S'),
-                      datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=1),'%Y%m%d%H%M%S')]
+        #largest window the noise filter day selection can reach
+        if config['N_days_nfc'][site]>1:
+            days_nfc=config['N_days_nfc'][site]*(config['max_gap_nfc']+1)
+        else:
+            days_nfc=0
+        time_range = [datetime.strftime(datetime.strptime(sdate, '%Y%m%d')-timedelta(days=days_nfc),'%Y%m%d%H%M%S'),
+                      datetime.strftime(datetime.strptime(edate, '%Y%m%d')+timedelta(days=days_nfc+1),'%Y%m%d%H%M%S')]
         n_files_irs=trp.download(config['channel_irs'][site],time_range,'',config)
         print(str(n_files_irs)+' ASSIST files downloaded')
         
