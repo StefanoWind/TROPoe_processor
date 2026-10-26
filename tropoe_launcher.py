@@ -228,12 +228,12 @@ def process_day(date,config,option):
             vip_file=f'data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
         else:
             vip_file=f'/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        tropoe_shell=config['tropoe_shell'][site]
+        tropoe_shell=config['tropoe_shell']
         procs=[]
         for shour,ehour,tag,lockfile in locked:
             chunk_tmp=os.path.join(tmpdir,f'tmp2_{shour:02d}{ehour:02d}')
             os.makedirs(chunk_tmp,exist_ok=True)
-            command=f'{os.path.join(cd,tropoe_shell)} {date} {vip_file} {prior_file} {shour} {ehour} {verbosity} {cd} {chunk_tmp} {image_name} {image_type}'
+            command=f'{os.path.join(cd,tropoe_shell)} {date} {vip_file} {prior_file} {shour} {ehour} {verbosity} {cd} {chunk_tmp} {image_name} {image_type[site]}'
             logger.info('The following will be executed: \n'+command+'\n')
             proc=subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
             procs.append((shour,ehour,tag,lockfile,chunk_tmp,proc))
