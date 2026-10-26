@@ -143,7 +143,7 @@ def copy_rename_assist_00(channel,sdate, edate,chassistdir,sumassistdir):
             elif 'summary' in f:
                 shutil.copy(f,os.path.join(sumassistdir,new_name))
 
-def select_nfc_dates(channel,date,n_days,max_gap):
+def select_nfc_dates(channel,date,n_days,max_gap,logger):
     '''
     Select the n_days available dates nearest to date without crossing gaps longer than max_gap days
     '''
@@ -173,7 +173,12 @@ def select_nfc_dates(channel,date,n_days,max_gap):
     block=dates[i1:i2+1]
 
     selected=sorted(sorted(block,key=lambda d:(abs((d-t0).days),d))[:n_days])
-    return [datetime.strftime(d,'%Y%m%d') for d in selected]
+    selected=[datetime.strftime(d,'%Y%m%d') for d in selected]
+
+    msg=f'Days selected for noise filter: {", ".join(selected)}'
+    logger.info(msg)
+    print(msg)
+    return selected
 
 def copy_rename_assist_raw(channel,date):
     '''

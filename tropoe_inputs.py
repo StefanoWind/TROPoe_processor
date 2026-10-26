@@ -58,12 +58,11 @@ ext_cbh=config['channel_cbh'][site].split('*')[1]
 
 #select days for noise filter
 if config['N_days_nfc'][site]>1:
-    dates_nfc=trp.select_nfc_dates(channel_irs,date,config['N_days_nfc'][site],config['max_gap_nfc'])
+    dates_nfc=trp.select_nfc_dates(channel_irs,date,config['N_days_nfc'][site],config['max_gap_nfc'],logger)
 else:
     dates_nfc=[date]
 sdate=dates_nfc[0]
 edate=dates_nfc[-1]
-logger.info(f'Days selected for noise filter: {", ".join(dates_nfc)}')
 if len(dates_nfc)<config['N_days_nfc'][site]:
     logger.warning(f'Only {len(dates_nfc)} of {config["N_days_nfc"][site]} days available for noise filter')
 
