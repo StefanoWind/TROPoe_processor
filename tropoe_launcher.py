@@ -228,7 +228,7 @@ def process_day(date,config,option):
             vip_file=f'data/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
         else:
             vip_file=f'/data/{channel_irs}/{date}-tmp/vip_{site}.{date}.txt'
-        tropoe_shell=config['tropoe_shell']
+        tropoe_shell=config['tropoe_shell'][site]
         procs=[]
         for shour,ehour,tag,lockfile in locked:
             chunk_tmp=os.path.join(tmpdir,f'tmp2_{shour:02d}{ehour:02d}')
