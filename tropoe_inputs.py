@@ -167,7 +167,7 @@ else:
 #get met data
 channel_met=config['channel_met'][site]
 if channel_met !="":
-    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*nc')))==0:#check if met file exists
+    if len(glob.glob(os.path.join(cd,'data',channel_met.replace(channel_met[-2:],'sel'),'*'+date+'*')))==0:#check if met file exists
         n_files_met=len(glob.glob(os.path.join(cd,'data',channel_met,'*'+date+'*')))
         if n_files_met==0:
             logger.error('No met data found.')
